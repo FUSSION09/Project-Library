@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen flex flex-col relative">
+
+    <header class="bg-slate-900 text-white shadow-md flex-shrink-0 relative z-10">
+        <div class="max-w-[100%] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-500 p-2 rounded-lg">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <span class="text-lg font-bold tracking-wide">Library Management System</span>
+            </div>
+            <div class="flex items-center space-x-4 text-sm">
+                <span class="text-slate-300"><i class="fa-regular fa-calendar mr-1"></i> <span id="currentDateDisplay"></span></span>
+                <button id="logoutBtn" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition border border-slate-700">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <!-- Live Seat Availability Map -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-chair mr-2"></i>Live Seat Availability Map</h3>
+                <div class="flex items-center space-x-4 text-xs font-medium text-slate-600">
+                    <span class="flex items-center"><span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-300 mr-1.5"></span> Available (Green)</span>
+                    <span class="flex items-center"><span class="w-3 h-3 rounded bg-red-100 border border-red-300 mr-1.5"></span> Occupied (Red)</span>
+                </div>
+            </div>
+            <div id="seat-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-indigo-500">
+                <p class="text-xs text-slate-500 font-semibold uppercase">Total Members</p>
+                <h3 class="text-2xl font-bold text-slate-800" id="stat-total">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500 flex flex-col justify-between">
+                <div class="flex justify-between items-center">
+                    <p class="text-xs text-slate-500 font-semibold uppercase">Total Revenue</p>
+                    <button onclick="toggleTotalRevenue()" class="text-slate-400 hover:text-slate-600 focus:outline-none" title="Show/Hide Revenue">
+                        <i class="fa-solid fa-eye" id="total-revenue-icon"></i>
+                    </button>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1" id="stat-profit">₹••••</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold uppercase">6 Hours Shift</p>
+                <h3 class="text-2xl font-bold text-slate-800" id="stat-6h">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold uppercase">12 Hours Shift</p>
+                <h3 class="text-2xl font-bold text-slate-800" id="stat-12h">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 font-semibold uppercase">24 Hours Shift</p>
+                <h3 class="text-2xl font-bold text-slate-800" id="stat-24h">0</h3>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div class="flex flex-wrap gap-4 w-full sm:w-auto items-center">
+                <select id="filter-shift" class="bg-slate-50 border border-slate-300 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                    <option value="All">All Shifts</option>
+                    <option value="6 Hours">6 Hours</option>
+                    <option value="12 Hours">12 Hours</option>
+                    <option value="24 Hours">24 Hours</option>
+                </select>
+                <select id="filter-status" class="bg-slate-50 border border-slate-300 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                    <option value="All">All Payment Status</option>
+                    <option value="Safe">Paid / Active</option>
+                    <option value="Due Soon">Due Soon (≤ 3 Days)</option>
+                    <option value="Overdue">Overdue</option>
+                </select>
+                <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-300">
+                    <button onclick="switchView('active')" id="tab-active" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 text-white transition">Active Students</button>
+                    <button onclick="switchView('pending')" id="tab-pending" class="px-3 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition">Pending Approvals</button>
+                    <button onclick="switchView('past')" id="tab-past" class="px-3 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition">Past Members</button>
+                </div>
+            </div>
+            <div class="relative w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
+                <input type="text" id="search-bar" placeholder="Search name, phone, or seat..." class="w-full bg-slate-50 border border-slate-300 text-sm rounded-lg pl-9 pr-3 py-2 outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-3">
+            <div class="flex space-x-6 text-xs font-medium px-1 text-slate-600" id="legend-container">
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-white border border-slate-300 mr-2"></span> Paid</div>
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-amber-100 border border-amber-300 mr-2"></span> Due Soon</div>
+                <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-100 border border-red-300 mr-2"></span> Overdue</div>
+            </div>
+            <div class="flex space-x-2" id="action-buttons-container">
+                <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" class="hidden" onchange="uploadExcel(event)">
+                <button onclick="document.getElementById('excelUpload').click()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition shadow-sm">
+                    <i class="fa-solid fa-file-excel mr-1"></i> Bulk Upload
+                </button>
+                <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition shadow-sm">
+                    <i class="fa-solid fa-plus mr-1"></i> Add Student
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto table-container">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-slate-800 text-white text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="px-4 py-3 font-medium">Photo</th>
+                            <th class="px-4 py-3 font-medium">Seat No</th>
+                            <th class="px-4 py-3 font-medium">Student Name</th>
+                            <th class="px-4 py-3 font-medium">Shift</th>
+                            <th class="px-4 py-3 font-medium">Mobile No.</th>
+                            <th class="px-4 py-3 font-medium">Aadhar No.</th>
+                            <th class="px-4 py-3 font-medium" id="date-column-header">Joining Date</th>
+                            <th class="px-4 py-3 font-medium">Plan</th>
+                            <th class="px-4 py-3 font-medium">Card No.</th>
+                            <th class="px-4 py-3 font-medium">Fees</th>
+                            <th class="px-4 py-3 font-medium">Mode</th>
+                            <th class="px-4 py-3 font-medium">Last Paid</th>
+                            <th class="px-4 py-3 font-medium">Due Date</th>
+                            <th class="px-4 py-3 font-medium text-center" id="action-column-header">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table-body" class="text-sm divide-y divide-slate-200 text-slate-700">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800" id="modalTitle">Add New Student</h3>
+                <button type="button" onclick="toggleModal('studentModal')" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <form id="studentForm" class="grid grid-cols-1 md:grid-cols-2 gap-6" enctype="multipart/form-data">
+                    <input type="hidden" id="studentId">
+                    <div class="space-y-4">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Student Photograph</label>
+                            <input type="file" id="add-photo" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Student Name</label>
+                            <input type="text" id="add-name" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Mobile Number</label>
+                            <input type="text" id="add-mobile" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Aadhar Number</label>
+                            <input type="text" id="add-aadhar" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="Enter Aadhaar Number">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Joining Date</label>
+                            <input type="date" id="add-joiningDate" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Seat No</label>
+                                <input type="text" id="add-seatNo" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="e.g. S-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Shift</label>
+                                <select id="add-shift" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                                    <option value="6 Hours">6 Hours</option>
+                                    <option value="12 Hours">12 Hours</option>
+                                    <option value="24 Hours">24 Hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Card No (Optional)</label>
+                                <input type="text" id="add-cardNo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Membership Plan</label>
+                                <select id="add-plan" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                                    <option value="Monthly">Monthly</option>
+                                    <option value="Quarterly">Quarterly</option>
+                                    <option value="Half-Yearly">Half-Yearly</option>
+                                    <option value="Yearly">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Fees (₹)</label>
+                                <input type="number" id="add-fee" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Payment Mode</label>
+                                <select id="add-mode" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                                    <option value="UPI">UPI</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Last Paid Date</label>
+                                <input type="date" id="add-lastPaid" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Due Date</label>
+                                <input type="date" id="add-dueDate" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Remarks</label>
+                            <input type="text" id="add-remarks" placeholder="e.g. Paid in full" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end space-x-3">
+                <button type="button" onclick="toggleModal('studentModal')" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition">Cancel</button>
+                <button type="submit" form="studentForm" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                    Save Student
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const today = new Date();
+        const formattedToday = today.toISOString().split('T')[0];
+        document.getElementById('currentDateDisplay').innerText = today.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+        let dbStudents = [];
+        let pendingStudents = [];
+        let pastMembers = [];
+        let currentView = 'active'; 
+        let calculatedRevenue = 0;
+        let isRevenueVisible = false;
+        const API_BASE = 'http://localhost:3000/api';
+
+        if (!localStorage.getItem('isLoggedIn')) window.location.href = 'login.html';
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = 'login.html';
+        });
+
+        async function fetchData() {
+            try {
+                const resStudents = await fetch(`${API_BASE}/students`);
+                if (resStudents.ok) dbStudents = await resStudents.json();
+
+                const resPending = await fetch(`${API_BASE}/pending-registrations`);
+                if (resPending.ok) pendingStudents = await resPending.json();
+
+                const resPast = await fetch(`${API_BASE}/past-members`);
+                if (resPast.ok) pastMembers = await resPast.json();
+
+                loadSeatMatrix();
+                applyFilters(); 
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        function switchView(view) {
+            currentView = view;
+            const tabActive = document.getElementById('tab-active');
+            const tabPending = document.getElementById('tab-pending');
+            const tabPast = document.getElementById('tab-past');
+            const legend = document.getElementById('legend-container');
+            const actionButtons = document.getElementById('action-buttons-container');
+
+            tabActive.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition";
+            tabPending.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition";
+            tabPast.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition";
+
+            if (view === 'active') {
+                tabActive.className = "px-3 py-1.5 text-xs font-semibold rounded-md bg-indigo-600 text-white transition";
+                if(legend) legend.style.display = 'flex';
+                if(actionButtons) actionButtons.style.display = 'flex';
+            } else if (view === 'pending') {
+                tabPending.className = "px-3 py-1.5 text-xs font-semibold rounded-md bg-amber-600 text-white transition";
+                if(legend) legend.style.display = 'none';
+                if(actionButtons) actionButtons.style.display = 'none';
+            } else {
+                tabPast.className = "px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-800 text-white transition";
+                if(legend) legend.style.display = 'none';
+                if(actionButtons) actionButtons.style.display = 'none';
+            }
+            applyFilters();
+        }
+
+        async function loadSeatMatrix() {
+            try {
+                const response = await fetch(`${API_BASE}/seats-shift-status`);
+                const data = await response.json();
+                const seatMapping = data.seatMapping || {};
+
+                const gridContainer = document.getElementById('seat-grid');
+                if (!gridContainer) return;
+                
+                gridContainer.innerHTML = '';
+
+                // Rendering 32 library seats (S-1 to S-32)
+                for (let i = 1; i <= 32; i++) {
+                    const seatName = `S-${i}`;
+                    const seatData = seatMapping[seatName];
+                    const isOccupied = !!seatData;
+
+                    const seatDiv = document.createElement('div');
+                    seatDiv.className = `p-3 rounded-xl text-center text-xs font-semibold transition flex flex-col items-center justify-center border shadow-sm ${
+                        isOccupied 
+                            ? 'bg-red-50 border-red-200 text-red-800' 
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100 cursor-pointer'
+                    }`;
+                    
+                    if (isOccupied) {
+                        seatDiv.innerHTML = `
+                            <div class="flex items-center justify-between w-full mb-1 px-1">
+                                <i class="fa-solid fa-user-lock text-red-500 text-xs"></i>
+                                <span class="text-[9px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">${seatData.shift}</span>
+                            </div>
+                            <span class="font-bold text-sm tracking-wide text-slate-900">${seatName}</span>
+                            <span class="text-[11px] font-medium text-slate-700 truncate w-full mt-0.5" title="${seatData.studentName}">${seatData.studentName}</span>
+                        `;
+                    } else {
+                        seatDiv.innerHTML = `
+                            <div class="mb-1">
+                                <i class="fa-solid fa-chair text-emerald-600 text-sm"></i>
+                            </div>
+                            <span class="font-bold text-sm text-slate-800">${seatName}</span>
+                            <span class="text-[10px] text-emerald-700 font-medium mt-0.5">Available</span>
+                        `;
+
+                        seatDiv.onclick = function() {
+                            openAddModal();
+                            document.getElementById('add-seatNo').value = seatName;
+                        };
+                    }
+
+                    gridContainer.appendChild(seatDiv);
+                }
+            } catch (error) {
+                console.error("Error loading seat matrix:", error);
+            }
+        }
+
+        // Auto-refresh seat matrix every 30 seconds
+        setInterval(loadSeatMatrix, 30000);
+
+        function getDaysDiff(dueDateStr) {
+            const dueDate = new Date(dueDateStr);
+            const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const d = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            return Math.ceil((d - t) / (1000 * 60 * 60 * 24));
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('student-table-body');
+            tbody.innerHTML = '';
+            calculatedRevenue = 0;
+
+            const dateHeader = document.getElementById('date-column-header');
+            const actionHeader = document.getElementById('action-column-header');
+
+            if (currentView === 'past') {
+                dateHeader.innerText = "Deleted At";
+                actionHeader.style.display = 'none';
+            } else if (currentView === 'pending') {
+                dateHeader.innerText = "Submitted At";
+                actionHeader.style.display = 'table-cell';
+                actionHeader.innerText = "Approval Action";
+            } else {
+                dateHeader.innerText = "Joining Date";
+                actionHeader.style.display = 'table-cell';
+                actionHeader.innerText = "Action";
+            }
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="text-center py-6 text-slate-500">No ${currentView === 'active' ? 'active students' : currentView === 'pending' ? 'pending registrations' : 'past members'} found.</td></tr>`;
+                return;
+            }
+
+            data.forEach(student => {
+                if (currentView === 'active') {
+                    calculatedRevenue += Number(student.fee) || 0;
+                }
+                const daysDiff = currentView === 'active' ? getDaysDiff(student.dueDate) : 0;
+                let rowBgClass = "bg-white hover:bg-slate-50"; 
+                
+                if (currentView === 'active') {
+                    if (daysDiff < 0) rowBgClass = "bg-red-50 hover:bg-red-100 text-red-900";
+                    else if (daysDiff >= 0 && daysDiff <= 3) rowBgClass = "bg-amber-50 hover:bg-amber-100 text-amber-900";
+                }
+
+                const photoUrl = student.photo ? `http://localhost:3000${student.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name)}&background=4f46e5&color=fff`;
+
+                const tr = document.createElement('tr');
+                tr.className = `transition-colors duration-150 border-b border-slate-200 last:border-0 ${rowBgClass}`;
+                
+                let actionHtml = '';
+                if (currentView === 'active') {
+                    actionHtml = `
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="printReceipt(${student.id})" class="text-emerald-600 hover:text-emerald-900 mr-2" title="Print Fee Receipt"><i class="fa-solid fa-print"></i></button>
+                            <button onclick="adjustLeave(${student.id}, '${student.name}', '${student.dueDate}')" class="text-amber-500 hover:text-amber-700 mr-2" title="Adjust Leave/Holidays"><i class="fa-solid fa-calendar-plus"></i></button>
+                            <button onclick="editStudent(${student.id})" class="text-indigo-600 hover:text-indigo-900 mr-2" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteStudent(${student.id})" class="text-red-500 hover:text-red-700" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    `;
+                } else if (currentView === 'pending') {
+                    actionHtml = `
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <button onclick="approveRegistration(${student.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold mr-2 transition"><i class="fa-solid fa-check mr-1"></i> Approve</button>
+                            <button onclick="rejectRegistration(${student.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-xmark mr-1"></i> Reject</button>
+                        </td>
+                    `;
+                }
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3">
+                        <img src="${photoUrl}" alt="${student.name}" class="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm">
+                    </td>
+                    <td class="px-4 py-3 font-semibold">${student.seatNo}</td>
+                    <td class="px-4 py-3 font-medium">${student.name}</td>
+                    <td class="px-4 py-3"><span class="bg-slate-200/50 text-slate-700 px-2 py-1 rounded text-xs border border-slate-300/50">${student.shift}</span></td>
+                    <td class="px-4 py-3">${student.mobile}</td>
+                    <td class="px-4 py-3 text-xs tracking-wider">${student.aadhar || '-'}</td>
+                    <td class="px-4 py-3 text-xs">${currentView === 'past' ? (student.deleted_at ? student.deleted_at.replace('T', ' ').substring(0, 16) : '-') : currentView === 'pending' ? (student.submitted_at ? student.submitted_at.replace('T', ' ').substring(0, 16) : '-') : (student.joiningDate || '-')}</td>
+                    <td class="px-4 py-3 text-xs">${student.plan}</td>
+                    <td class="px-4 py-3 text-xs font-mono">${student.cardNo || '-'}</td>
+                    <td class="px-4 py-3 font-medium text-emerald-600">
+                        ${currentView === 'active' ? `
+                            <span id="fee-text-${student.id}">₹••••</span>
+                            <button onclick="toggleFee(${student.id},${student.fee})" class="ml-2 text-slate-400 hover:text-slate-600 focus:outline-none" title="Show/Hide Fee">
+                                <i class="fa-solid fa-eye" id="fee-icon-${student.id}"></i>
+                            </button>
+                        ` : `₹${student.fee}`}
+                    </td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${student.mode === 'UPI' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}">${student.mode}</span></td>
+                    <td class="px-4 py-3 text-xs">${student.lastPaid}</td>
+                    <td class="px-4 py-3 font-bold">${student.dueDate}</td>
+                    ${actionHtml}
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('stat-total').innerText = dbStudents.length;
+            const revenueElem = document.getElementById('stat-profit');
+            if (isRevenueVisible) {
+                revenueElem.innerText = `₹${calculatedRevenue.toLocaleString('en-IN')}`;
+            } else {
+                revenueElem.innerText = '₹••••';
+            }
+
+            document.getElementById('stat-6h').innerText = dbStudents.filter(s => s.shift === '6 Hours').length;
+            document.getElementById('stat-12h').innerText = dbStudents.filter(s => s.shift === '12 Hours').length;
+            document.getElementById('stat-24h').innerText = dbStudents.filter(s => s.shift === '24 Hours').length;
+        }
+
+        async function approveRegistration(id) {
+            if (!confirm("Approve this registration? This will add the student to the active database and generate their first receipt.")) return;
+            try {
+                const res = await fetch(`${API_BASE}/approve-registration/${id}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    fetchData();
+                } else {
+                    alert("Approval failed: " + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function rejectRegistration(id) {
+            if (!confirm("Are you sure you want to reject and delete this registration request?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/pending-registrations/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    fetchData();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function adjustLeave(id, name, currentDueDate) {
+            const days = prompt(`Adjust holidays for ${name}\nCurrent Due Date: ${currentDueDate}\nEnter number of days to extend:`);
+            if (days && !isNaN(days) && parseInt(days) > 0) {
+                try {
+                    const res = await fetch(`${API_BASE}/students/${id}/adjust-leave`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ daysToAdjust: parseInt(days) })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(`Success! Due Date extended by ${days} days. New Due Date is ${data.newDueDate}`);
+                        fetchData();
+                    } else {
+                        alert("Failed to adjust leave.");
+                    }
+                } catch(err) {
+                    console.error(err);
+                }
+            }
+        }
+
+        async function printReceipt(id) {
+            const student = dbStudents.find(s => s.id === id);
+            if (!student) return;
+
+            const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
+            const paymentDate = student.lastPaid || formattedToday;
+
+            await fetch(`${API_BASE}/receipts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_id: student.id,
+                    receipt_no: receiptNo,
+                    student_name: student.name,
+                    seat_no: student.seatNo,
+                    fee: student.fee,
+                    mode: student.mode,
+                    plan: student.plan,
+                    payment_date: paymentDate
+                })
+            });
+
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Fee Receipt - ${receiptNo}</title>
+                    <style>
+                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #334155; }
+                        .receipt-box { max-width: 600px; margin: auto; border: 1px solid #cbd5e1; padding: 30px; border-radius: 12px; }
+                        .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+                        .header h2 { margin: 0; color: #0f172a; }
+                        .details { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        .details th, .details td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 14px; }
+                        .total { margin-top: 20px; text-align: right; font-size: 18px; font-weight: bold; color: #059669; }
+                        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #64748b; }
+                    </style>
+                </head>
+                <body>
+                    <div class="receipt-box">
+                        <div class="header">
+                            <h2>Library Management System</h2>
+                            <p>Official Fee Payment Receipt</p>
+                        </div>
+                        <p><strong>Receipt No:</strong> ${receiptNo}</p>
+                        <p><strong>Date:</strong> ${paymentDate}</p>
+                        <table class="details">
+                            <tr><th>Student Name</th><td>${student.name}</td></tr>
+                            <tr><th>Seat No</th><td>${student.seatNo}</td></tr>
+                            <tr><th>Mobile No</th><td>${student.mobile}</td></tr>
+                            <tr><th>Membership Plan</th><td>${student.plan} (${student.shift})</td></tr>
+                            <tr><th>Payment Mode</th><td>${student.mode}</td></tr>
+                        </table>
+                        <div class="total">Total Paid: ₹${Number(student.fee).toLocaleString('en-IN')}</div>
+                        <div class="footer">Thank you for your payment! This is a computer-generated receipt.</div>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); window.close(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function toggleTotalRevenue() {
+            isRevenueVisible = !isRevenueVisible;
+            const revenueElem = document.getElementById('stat-profit');
+            const revenueIcon = document.getElementById('total-revenue-icon');
+
+            if (isRevenueVisible) {
+                revenueElem.innerText = `₹${calculatedRevenue.toLocaleString('en-IN')}`;
+                revenueIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                revenueElem.innerText = '₹••••';
+                revenueIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function toggleFee(id, actualFee) {
+            const feeSpan = document.getElementById(`fee-text-${id}`);
+            const feeIcon = document.getElementById(`fee-icon-${id}`);
+
+            if (feeSpan.innerText.includes('••••')) {
+                feeSpan.innerText = `₹${Number(actualFee).toLocaleString('en-IN')}`;
+                feeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                feeSpan.innerText = '₹••••';
+                feeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function applyFilters() {
+            const shiftVal = document.getElementById('filter-shift').value;
+            const statusVal = document.getElementById('filter-status').value;
+            const searchVal = document.getElementById('search-bar').value.toLowerCase();
+
+            let targetSource = dbStudents;
+            if (currentView === 'pending') targetSource = pendingStudents;
+            else if (currentView === 'past') targetSource = pastMembers;
+
+            const filteredData = targetSource.filter(student => {
+                if (shiftVal !== 'All' && student.shift !== shiftVal) return false;
+                if (searchVal && !(
+                    student.name.toLowerCase().includes(searchVal) ||
+                    student.mobile.includes(searchVal) ||
+                    student.seatNo.toLowerCase().includes(searchVal)
+                )) return false;
+
+                if (currentView === 'active') {
+                    const daysDiff = getDaysDiff(student.dueDate);
+                    let currentStatus = "Safe";
+                    if (daysDiff < 0) currentStatus = "Overdue";
+                    else if (daysDiff >= 0 && daysDiff <= 3) currentStatus = "Due Soon";
+                    if (statusVal !== 'All' && currentStatus !== statusVal) return false;
+                }
+
+                return true;
+            });
+            renderTable(filteredData);
+        }
+
+        document.getElementById('filter-shift').addEventListener('change', applyFilters);
+        document.getElementById('filter-status').addEventListener('change', applyFilters);
+        document.getElementById('search-bar').addEventListener('keyup', applyFilters);
+
+        function toggleModal(modalID) {
+            document.getElementById(modalID).classList.toggle('hidden');
+        }
+
+        function openAddModal() {
+            document.getElementById('studentForm').reset();
+            document.getElementById('studentId').value = '';
+            document.getElementById('modalTitle').innerText = 'Add New Student';
+            document.getElementById('add-joiningDate').value = formattedToday;
+            document.getElementById('add-lastPaid').value = formattedToday;
+            toggleModal('studentModal');
+        }
+
+        function editStudent(id) {
+            const student = dbStudents.find(s => s.id === id);
+            if(!student) return;
+
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('add-seatNo').value = student.seatNo;
+            document.getElementById('add-name').value = student.name;
+            document.getElementById('add-shift').value = student.shift;
+            document.getElementById('add-mobile').value = student.mobile;
+            document.getElementById('add-aadhar').value = student.aadhar;
+            document.getElementById('add-joiningDate').value = student.joiningDate || formattedToday;
+            document.getElementById('add-plan').value = student.plan;
+            document.getElementById('add-cardNo').value = student.cardNo;
+            document.getElementById('add-fee').value = student.fee;
+            document.getElementById('add-mode').value = student.mode;
+            document.getElementById('add-lastPaid').value = student.lastPaid;
+            document.getElementById('add-dueDate').value = student.dueDate;
+            document.getElementById('add-remarks').value = student.remarks;
+            
+            document.getElementById('add-photo').value = "";
+            document.getElementById('modalTitle').innerText = "Edit Student";
+            toggleModal('studentModal');
+        }
+
+        document.getElementById('studentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('seatNo', document.getElementById('add-seatNo').value);
+            formData.append('name', document.getElementById('add-name').value);
+            formData.append('shift', document.getElementById('add-shift').value);
+            formData.append('mobile', document.getElementById('add-mobile').value);
+            formData.append('aadhar', document.getElementById('add-aadhar').value);
+            formData.append('joiningDate', document.getElementById('add-joiningDate').value);
+            formData.append('plan', document.getElementById('add-plan').value);
+            formData.append('cardNo', document.getElementById('add-cardNo').value);
+            formData.append('fee', document.getElementById('add-fee').value);
+            formData.append('mode', document.getElementById('add-mode').value);
+            formData.append('lastPaid', document.getElementById('add-lastPaid').value);
+            formData.append('dueDate', document.getElementById('add-dueDate').value);
+            formData.append('remarks', document.getElementById('add-remarks').value);
+
+            const photoInput = document.getElementById('add-photo');
+            if (photoInput.files.length > 0) {
+                formData.append('photo', photoInput.files[0]);
+            }
+
+            const id = document.getElementById('studentId').value;
+            const method = id ? 'PUT' : 'POST'; 
+            const url = id ? `${API_BASE}/students/${id}` : `${API_BASE}/students`;
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    body: formData
+                });
+
+                if (response.ok) {
+                    toggleModal('studentModal');
+                    this.reset();
+                    fetchData(); 
+                } else {
+                    alert("Failed to save student.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        });
+
+        async function uploadExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('excel', file);
+
+            try {
+                alert("Processing Excel file, please wait...");
+                const response = await fetch(`${API_BASE}/students/bulk-upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Success! Successfully imported ${data.count} students.`);
+                    fetchData(); 
+                } else {
+                    alert("Upload failed: " + data.message);
+                }
+            } catch (error) {
+                console.error("Error uploading Excel:", error);
+                alert("Server error during upload.");
+            } finally {
+                event.target.value = ''; 
+            }
+        }
+
+        async function deleteStudent(id) {
+            if (confirm("Are you sure you want to delete this student? They will be moved to the Past Members archive.")) {
+                try {
+                    const response = await fetch(`${API_BASE}/students/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        fetchData();
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>

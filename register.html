@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management - Student Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200">
+        <div class="px-8 py-6 bg-slate-900 text-white flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold">New Student Registration</h2>
+                <p class="text-xs text-slate-400 mt-1">Submit your membership details for admin approval.</p>
+            </div>
+            <div class="bg-indigo-500 p-2.5 rounded-xl">
+                <i class="fa-solid fa-user-plus text-lg"></i>
+            </div>
+        </div>
+        
+        <div class="p-8">
+            <form id="publicRegisterForm" class="grid grid-cols-1 md:grid-cols-2 gap-6" enctype="multipart/form-data">
+                <div class="space-y-4 md:col-span-2">
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Student Photograph</label>
+                        <input type="file" id="reg-photo" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                    <input type="text" id="reg-name" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Mobile Number</label>
+                    <input type="text" id="reg-mobile" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Aadhar Number</label>
+                    <input type="text" id="reg-aadhar" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" placeholder="[Aadhaar Redacted]">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Requested Seat No (Optional)</label>
+                    <input type="text" id="reg-seatNo" placeholder="e.g. S-12" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Shift</label>
+                    <select id="reg-shift" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        <option value="6 Hours">6 Hours</option>
+                        <option value="12 Hours">12 Hours</option>
+                        <option value="24 Hours">24 Hours</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Membership Plan</label>
+                    <select id="reg-plan" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Half-Yearly">Half-Yearly</option>
+                        <option value="Yearly">Yearly</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Fees Amount (₹)</label>
+                    <input type="number" id="reg-fee" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Payment Mode</label>
+                    <select id="reg-mode" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+                        <option value="UPI">UPI</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" id="submitRegBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-md text-sm">
+                        Submit Registration for Approval
+                    </button>
+                </div>
+            </form>
+            <div id="success-msg" class="hidden mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl text-center">
+                Registration submitted successfully! Your application is awaiting admin verification.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const today = new Date().toISOString().split('T')[0];
+
+        document.getElementById('publicRegisterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitRegBtn');
+            btn.disabled = true;
+            btn.innerText = "Submitting...";
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('reg-name').value);
+            formData.append('mobile', document.getElementById('reg-mobile').value);
+            formData.append('aadhar', document.getElementById('reg-aadhar').value);
+            formData.append('seatNo', document.getElementById('reg-seatNo').value || 'Pending');
+            formData.append('shift', document.getElementById('reg-shift').value);
+            formData.append('plan', document.getElementById('reg-plan').value);
+            formData.append('fee', document.getElementById('reg-fee').value);
+            formData.append('mode', document.getElementById('reg-mode').value);
+            formData.append('joiningDate', today);
+            formData.append('lastPaid', today);
+            
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 30);
+            formData.append('dueDate', dueDate.toISOString().split('T')[0]);
+
+            const photoInput = document.getElementById('reg-photo');
+            if (photoInput.files.length > 0) {
+                formData.append('photo', photoInput.files[0]);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.reset();
+                    document.getElementById('success-msg').classList.remove('hidden');
+                } else {
+                    alert("Submission failed: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server connection error.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Submit Registration for Approval";
+            }
+        });
+    </script>
+</body>
+</html>

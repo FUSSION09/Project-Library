@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management - Staff Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 h-screen flex">
+
+    <!-- Left Side: Internal Branding (Hidden on Mobile) -->
+    <div class="hidden lg:flex lg:w-1/2 relative bg-slate-900 overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+             alt="Library Books" 
+             class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay grayscale">
+        
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/90 to-transparent"></div>
+        
+        <div class="relative z-10 flex flex-col justify-between p-12 h-full w-full">
+            <div class="flex items-center space-x-3 text-white">
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-lg">
+                    <i class="fa-solid fa-server text-xl"></i>
+                </div>
+                <span class="text-2xl font-bold tracking-tight">Library Management System</span>
+            </div>
+            
+            <div class="space-y-6 text-white max-w-lg">
+                <h1 class="text-4xl font-bold leading-tight">Internal Staff Portal</h1>
+                <p class="text-slate-300 text-lg font-light leading-relaxed">
+                    Strictly authorized access only. Manage student records, seating, and financial databases from the centralized control panel.
+                </p>
+            </div>
+            
+            <div class="text-slate-500 text-sm">
+                &copy; 2026 Library Management System
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side: Secure Login Form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-white">
+        
+        <!-- Mobile Logo (Visible only on small screens) -->
+        <div class="absolute top-8 left-8 flex lg:hidden items-center space-x-3 text-slate-900">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
+                <i class="fa-solid fa-server"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight">LMS Admin</span>
+        </div>
+
+        <div class="w-full max-w-md space-y-8">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Staff Login</h2>
+                <p class="text-slate-500 mt-2">Enter your credentials to access the management dashboard.</p>
+            </div>
+
+            <!-- Form intercepted by JavaScript below -->
+            <form id="loginForm" class="space-y-6">
+                <div class="space-y-1.5">
+                    <label for="username" class="block text-sm font-medium text-slate-700">Admin ID</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-user-shield text-slate-400"></i>
+                        </div>
+                        <input type="text" id="username" name="username" required autocomplete="off"
+                            class="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 focus:bg-white transition-all"
+                            placeholder="e.g. admin">
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-slate-400"></i>
+                        </div>
+                        <input type="password" id="password" name="password" required
+                            class="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 focus:bg-white transition-all"
+                            placeholder="••••••••">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-400 hover:text-slate-600 transition" onclick="togglePassword()">
+                            <i class="fa-regular fa-eye" id="toggleIcon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden Error Message Box -->
+                <div id="error-msg" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center">
+                    <i class="fa-solid fa-circle-exclamation mr-2 flex-shrink-0"></i>
+                    <span id="error-text">Invalid credentials. Please try again.</span>
+                </div>
+
+                <div>
+                    <button type="submit" id="submitBtn"
+                        class="w-full flex justify-center items-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 disabled:bg-indigo-400 disabled:cursor-not-allowed">
+                        Authenticate & Login
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Password Visibility Toggle
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        // Backend Integration: Handle Login Form Submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent standard page reload
+
+            // Get values and remove accidental whitespace
+            const usernameInput = document.getElementById('username').value.trim();
+            const passwordInput = document.getElementById('password').value.trim();
+            
+            const errorBox = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Reset UI states
+            errorBox.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Authenticating...';
+
+            try {
+                // Send data to Node.js backend (MySQL connected)
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username: usernameInput, 
+                        password: passwordInput 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Login successful! Save session locally and redirect
+                    localStorage.setItem('isLoggedIn', 'true');
+                    window.location.href = 'admin.html';
+                } else {
+                    // Login failed (wrong password/username)
+                    errorText.innerText = data.message || "Invalid credentials. Please try again.";
+                    errorBox.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Authenticate & Login';
+                }
+
+            } catch (error) {
+                console.error("Connection Error:", error);
+                // Server is down or not responding
+                errorText.innerText = "Cannot connect to server. Is the Node.js backend running?";
+                errorBox.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Authenticate & Login';
+            }
+        });
+    </script>
+</body>
+</html>
