@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
 </head>
+
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
 
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-200">
@@ -21,7 +27,7 @@
                 <i class="fa-solid fa-user-plus text-lg"></i>
             </div>
         </div>
-        
+
         <div class="p-8">
             <form id="publicRegisterForm" class="grid grid-cols-1 md:grid-cols-2 gap-6" enctype="multipart/form-data">
                 <div class="space-y-4 md:col-span-2">
@@ -88,7 +94,8 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3000/api';
+        // UPDATED: Use relative path for live Vercel deployment
+        const API_BASE = '/api';
         const today = new Date().toISOString().split('T')[0];
 
         document.getElementById('publicRegisterForm').addEventListener('submit', async function(e) {
@@ -108,7 +115,7 @@
             formData.append('mode', document.getElementById('reg-mode').value);
             formData.append('joiningDate', today);
             formData.append('lastPaid', today);
-            
+
             const dueDate = new Date();
             dueDate.setDate(dueDate.getDate() + 30);
             formData.append('dueDate', dueDate.toISOString().split('T')[0]);
@@ -140,4 +147,5 @@
         });
     </script>
 </body>
+
 </html>
