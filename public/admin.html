@@ -60,7 +60,6 @@
                 </div>
             </div>
 
-            <!-- UPDATED GRID: 10 columns on desktop so rows A-H fit perfectly -->
             <div id="seat-grid" class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5">
                 <!-- Populated dynamically -->
             </div>
@@ -104,6 +103,7 @@
                         <option value="6 Hours">6 Hours</option>
                         <option value="12 Hours">12 Hours</option>
                         <option value="24 Hours">24 Hours</option>
+                        <option value="Customize">Customize</option>
                     </select>
                     <select id="filter-status" class="bg-slate-50 border border-slate-300 text-xs sm:text-sm rounded-lg px-2.5 py-2 outline-none">
                         <option value="All">All Statuses</option>
@@ -212,6 +212,7 @@
                             <option value="6 Hours">6 Hours</option>
                             <option value="12 Hours">12 Hours</option>
                             <option value="24 Hours">24 Hours</option>
+                            <option value="Customize">Customize</option>
                         </select>
                     </div>
                     <div>
@@ -236,6 +237,7 @@
                         <select id="add-mode" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
                             <option value="UPI">UPI</option>
                             <option value="Cash">Cash</option>
+                            <option value="Pending">Pending</option>
                         </select>
                     </div>
                     <div>
@@ -340,7 +342,6 @@
 
                 gridContainer.innerHTML = '';
 
-                // Generate new seat array (A1-H10, I1-I13)
                 const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
                 const allSeatNames = [];
                 rows.forEach(row => {
@@ -398,8 +399,16 @@
         function sendWhatsAppReminder(name, mobile, fee, dueDate, seatNo) {
             let phone = mobile.toString().replace(/\D/g, '');
             if (phone.length === 10) phone = '91' + phone;
-
             const message = `Hello *${name}*,\n\nThis is a reminder from *Friends Library*.\n\nYour membership fee of *₹${fee}* for Seat *${seatNo}* is due on *${dueDate}*.\n\nPlease submit your fee on time to keep your seat active.\n\nRegards,\n*Friends Library Management*`;
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // NEW: Send WhatsApp Consultation for "Customize" Shifts
+        function sendConsultationWhatsApp(name, mobile) {
+            let phone = mobile.toString().replace(/\D/g, '');
+            if (phone.length === 10) phone = '91' + phone;
+            const message = `Hello *${name}*,\n\nWe received your registration for *Friends Library* with a request for a customized shift.\n\nPlease let us know what timings you are looking for so we can consult and finalize your seat.\n\nRegards,\n*Friends Library Management*`;
             const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
         }
@@ -435,9 +444,15 @@
                         const daysDiff = currentView === 'active' ? getDaysDiff(student.dueDate) : 0;
                         let rowBgClass = "bg-white hover:bg-slate-50";
 
+                        // Styling logic based on view
                         if (currentView === 'active') {
                             if (daysDiff < 0) rowBgClass = "bg-red-50 text-red-900";
                             else if (daysDiff <= 3) rowBgClass = "bg-amber-50 text-amber-900";
+                        } else if (currentView === 'pending') {
+                            // Highlight Customize Shift rows in blue
+                            if (student.shift === 'Customize') {
+                                rowBgClass = "bg-indigo-50 border-l-4 border-indigo-500 font-medium text-indigo-900";
+                            }
                         }
 
                         const photoUrl = student.photo ? student.photo : `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name)}&background=4f46e5&color=fff`;
@@ -461,8 +476,18 @@
                         </td>
                     `;
                         } else if (currentView === 'pending') {
+                            // Add Consultation Buttons for Customize Shifts
+                            let consultButtons = '';
+                            if (student.shift === 'Customize') {
+                                consultButtons = `
+                            <button onclick="sendConsultationWhatsApp('${student.name}', '${student.mobile}')" class="text-emerald-600 hover:text-emerald-800 p-1 mr-1" title="Consult via WhatsApp"><i class="fa-brands fa-whatsapp text-lg"></i></button>
+                            <a href="tel:${student.mobile}" class="text-blue-500 hover:text-blue-700 p-1 mr-3" title="Call Student"><i class="fa-solid fa-phone"></i></a>
+                        `;
+                            }
+
                             actionHtml = `
                         <td class="px-3 py-2.5 text-center whitespace-nowrap">
+                            ${consultButtons}
                             <button onclick="approveRegistration(${student.id})" class="bg-emerald-600 text-white px-2.5 py-1 rounded text-xs mr-1"><i class="fa-solid fa-check"></i></button>
                             <button onclick="rejectRegistration(${student.id})" class="bg-red-600 text-white px-2.5 py-1 rounded text-xs"><i class="fa-solid fa-xmark"></i></button>
                         </td>

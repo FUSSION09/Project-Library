@@ -65,6 +65,7 @@
                         <option value="6 Hours">6 Hours</option>
                         <option value="12 Hours">12 Hours</option>
                         <option value="24 Hours">24 Hours</option>
+                        <option value="Customize">Customize</option>
                     </select>
                 </div>
                 <div>
@@ -77,8 +78,6 @@
                     </select>
                 </div>
 
-                <!-- Fees and Payment Mode intentionally removed from UI per request -->
-
                 <div class="md:col-span-2 mt-2">
                     <button type="submit" id="submitRegBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-md text-sm">
                         Submit Registration for Approval
@@ -86,7 +85,7 @@
                 </div>
             </form>
             <div id="success-msg" class="hidden mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl text-center font-medium">
-                <i class="fa-solid fa-circle-check mr-1"></i> Registration submitted successfully! Awaiting admin approval.
+                <!-- Dynamically populated success message -->
             </div>
         </div>
     </div>
@@ -122,6 +121,16 @@
         const API_BASE = '/api';
         const today = new Date().toISOString().split('T')[0];
 
+        // SHIFT CUSTOMIZE LISTENER: Changes the submit button text interactively
+        document.getElementById('reg-shift').addEventListener('change', function(e) {
+            const btn = document.getElementById('submitRegBtn');
+            if (e.target.value === 'Customize') {
+                btn.innerText = "Submit (Admin will consult you soon)";
+            } else {
+                btn.innerText = "Submit Registration for Approval";
+            }
+        });
+
         // SEAT MODAL LOGIC
         const seatModal = document.getElementById('seatModal');
         const gridContainer = document.getElementById('public-seat-grid');
@@ -147,7 +156,6 @@
 
                 loadingIndicator.classList.add('hidden');
 
-                // Generate array for 93 seats (A1-H10, I1-I13)
                 const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
                 const allSeatNames = [];
                 rows.forEach(row => {
@@ -161,7 +169,6 @@
                     const isOccupied = !!seatMapping[seatName];
                     const seatDiv = document.createElement('div');
 
-                    // Privacy First: Occupied seats show NO names or shifts
                     if (isOccupied) {
                         seatDiv.className = 'p-2 sm:p-3 rounded-lg text-center text-xs font-semibold flex flex-col items-center justify-center border bg-red-50 border-red-200 text-red-400 opacity-60 cursor-not-allowed';
                         seatDiv.innerHTML = `
@@ -179,7 +186,6 @@
                             closeSeatModal();
                         };
                     }
-
                     gridContainer.appendChild(seatDiv);
                 }
             } catch (error) {
@@ -198,6 +204,7 @@
                 return;
             }
 
+            const shiftSelected = document.getElementById('reg-shift').value;
             const btn = document.getElementById('submitRegBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Submitting...';
@@ -207,13 +214,11 @@
             formData.append('mobile', document.getElementById('reg-mobile').value);
             formData.append('aadhar', document.getElementById('reg-aadhar').value);
             formData.append('seatNo', seatInput);
-            formData.append('shift', document.getElementById('reg-shift').value);
+            formData.append('shift', shiftSelected);
             formData.append('plan', document.getElementById('reg-plan').value);
 
-            // Backend safeguard: Pass default values so the database insertion doesn't fail
             formData.append('fee', '0');
             formData.append('mode', 'Pending');
-
             formData.append('joiningDate', today);
             formData.append('lastPaid', today);
 
@@ -235,7 +240,16 @@
 
                 if (data.success) {
                     this.reset();
-                    document.getElementById('success-msg').classList.remove('hidden');
+
+                    // Displays the customized success message
+                    const successBox = document.getElementById('success-msg');
+                    if (shiftSelected === 'Customize') {
+                        successBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Registration submitted! Admin will consult you soon to finalize your shift.';
+                    } else {
+                        successBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Registration submitted successfully! Awaiting admin approval.';
+                    }
+                    successBox.classList.remove('hidden');
+
                     window.scrollTo({
                         top: 0,
                         behavior: 'smooth'
@@ -248,7 +262,9 @@
                 alert("Server connection error.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Submit Registration for Approval";
+                // Ensures button text resets accurately based on the form's state
+                const currentShiftState = document.getElementById('reg-shift').value;
+                btn.innerText = currentShiftState === 'Customize' ? "Submit (Admin will consult you soon)" : "Submit Registration for Approval";
             }
         });
     </script>
