@@ -278,7 +278,6 @@
         let calculatedRevenue = 0;
         let isRevenueVisible = false;
 
-        // UPDATED: Use relative path for live Vercel deployment
         const API_BASE = '/api';
 
         if (!localStorage.getItem('isLoggedIn')) window.location.href = 'login.html';
@@ -344,7 +343,6 @@
 
                 gridContainer.innerHTML = '';
 
-                // Rendering 32 library seats (S-1 to S-32)
                 for (let i = 1; i <= 32; i++) {
                     const seatName = `S-${i}`;
                     const seatData = seatMapping[seatName];
@@ -388,7 +386,6 @@
             }
         }
 
-        // Auto-refresh seat matrix every 30 seconds
         setInterval(loadSeatMatrix, 30000);
 
         function getDaysDiff(dueDateStr) {
@@ -396,6 +393,16 @@
             const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             const d = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
             return Math.ceil((d - t) / (1000 * 60 * 60 * 24));
+        }
+
+        function sendWhatsAppReminder(name, mobile, fee, dueDate, seatNo) {
+            let phone = mobile.replace(/\D/g, '');
+            if (phone.length === 10) phone = '91' + phone;
+
+            const message = `Hello *${name}*,\n\nThis is a gentle reminder from *Friends Library*.\n\nYour membership fee of *₹${fee}* for Seat *${seatNo}* is due on *${dueDate}*.\n\nPlease submit your fee to maintain your seat reservation and continue your uninterrupted study sessions.\n\nRegards,\n*Friends Library Management*`;
+
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
         }
 
         function renderTable(data) {
@@ -436,7 +443,6 @@
                             else if (daysDiff >= 0 && daysDiff <= 3) rowBgClass = "bg-amber-50 hover:bg-amber-100 text-amber-900";
                         }
 
-                        // UPDATED: Removed localhost from photoUrl since Supabase handles public URLs
                         const photoUrl = student.photo ? student.photo : `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name)}&background=4f46e5&color=fff`;
 
                         const tr = document.createElement('tr');
@@ -444,8 +450,14 @@
 
                         let actionHtml = '';
                         if (currentView === 'active') {
+                            let waButton = '';
+                            if (daysDiff <= 3) {
+                                waButton = `<button onclick="sendWhatsAppReminder('${student.name}', '${student.mobile}', '${student.fee}', '${student.dueDate}', '${student.seatNo}')" class="text-green-500 hover:text-green-700 mr-2" title="Send WhatsApp Reminder"><i class="fa-brands fa-whatsapp text-lg"></i></button>`;
+                            }
+
                             actionHtml = `
                         <td class="px-4 py-3 text-center whitespace-nowrap">
+                            ${waButton}
                             <button onclick="printReceipt(${student.id})" class="text-emerald-600 hover:text-emerald-900 mr-2" title="Print Fee Receipt"><i class="fa-solid fa-print"></i></button>
                             <button onclick="adjustLeave(${student.id}, '${student.name}', '${student.dueDate}')" class="text-amber-500 hover:text-amber-700 mr-2" title="Adjust Leave/Holidays"><i class="fa-solid fa-calendar-plus"></i></button>
                             <button onclick="editStudent(${student.id})" class="text-indigo-600 hover:text-indigo-900 mr-2" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -551,14 +563,15 @@
             }
         }
 
+        // BULLETPROOF ADMIN RECEIPT PRINTER
         async function printReceipt(id) {
             const student = dbStudents.find(s => s.id === id);
             if (!student) return;
 
-            const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
+            const receiptNo = 'REC-' + Date.now().toString().slice(-6);
             const paymentDate = student.lastPaid || formattedToday;
 
-            await fetch(`${API_BASE}/receipts`, {
+            await fetch(API_BASE + '/receipts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -574,46 +587,34 @@
             });
 
             const printWindow = window.open('', '_blank', 'width=800,height=600');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Fee Receipt - ${receiptNo}</title>
-                    <style>
-                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #334155; }
-                        .receipt-box { max-width: 600px; margin: auto; border: 1px solid #cbd5e1; padding: 30px; border-radius: 12px; }
-                        .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
-                        .header h2 { margin: 0; color: #0f172a; }
-                        .details { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        .details th, .details td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 14px; }
-                        .total { margin-top: 20px; text-align: right; font-size: 18px; font-weight: bold; color: #059669; }
-                        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #64748b; }
-                    </style>
-                </head>
-                <body>
-                    <div class="receipt-box">
-                        <div class="header">
-                            <h2>Library Management System</h2>
-                            <p>Official Fee Payment Receipt</p>
-                        </div>
-                        <p><strong>Receipt No:</strong> ${receiptNo}</p>
-                        <p><strong>Date:</strong> ${paymentDate}</p>
-                        <table class="details">
-                            <tr><th>Student Name</th><td>${student.name}</td></tr>
-                            <tr><th>Seat No</th><td>${student.seatNo}</td></tr>
-                            <tr><th>Mobile No</th><td>${student.mobile}</td></tr>
-                            <tr><th>Membership Plan</th><td>${student.plan} (${student.shift})</td></tr>
-                            <tr><th>Payment Mode</th><td>${student.mode}</td></tr>
-                        </table>
-                        <div class="total">Total Paid: ₹${Number(student.fee).toLocaleString('en-IN')}</div>
-                        <div class="footer">Thank you for your payment! This is a computer-generated receipt.</div>
-                    </div>
-                    <script>
-                        window.onload = function() { window.print(); window.close(); }
-                    <\/script>
-                </body>
-                </html>
-            `);
+            
+            const receiptContent = 
+                '<div style="font-family: sans-serif; padding: 40px; color: #334; max-width: 600px; margin: auto; border: 1px solid #ccc; border-radius: 12px; text-align: center;">' +
+                    '<h2>Library Management System</h2>' +
+                    '<p>Official Fee Payment Receipt</p>' +
+                    '<hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">' +
+                    '<p style="text-align: left;"><strong>Receipt No:</strong> ' + receiptNo + '</p>' +
+                    '<p style="text-align: left;"><strong>Date:</strong> ' + paymentDate + '</p>' +
+                    '<table style="width: 100%; border-collapse: collapse; margin-top: 20px; text-align: left;">' +
+                        '<tr><th style="padding: 10px; border-bottom: 1px solid #eee;">Student Name</th><td style="padding: 10px; border-bottom: 1px solid #eee;">' + student.name + '</td></tr>' +
+                        '<tr><th style="padding: 10px; border-bottom: 1px solid #eee;">Seat No</th><td style="padding: 10px; border-bottom: 1px solid #eee;">' + student.seatNo + '</td></tr>' +
+                        '<tr><th style="padding: 10px; border-bottom: 1px solid #eee;">Mobile No</th><td style="padding: 10px; border-bottom: 1px solid #eee;">' + student.mobile + '</td></tr>' +
+                        '<tr><th style="padding: 10px; border-bottom: 1px solid #eee;">Membership Plan</th><td style="padding: 10px; border-bottom: 1px solid #eee;">' + student.plan + ' (' + student.shift + ')</td></tr>' +
+                        '<tr><th style="padding: 10px; border-bottom: 1px solid #eee;">Payment Mode</th><td style="padding: 10px; border-bottom: 1px solid #eee;">' + student.mode + '</td></tr>' +
+                    '</table>' +
+                    '<div style="margin-top: 20px; text-align: right; font-size: 18px; font-weight: bold; color: #059669;">Total Paid: ₹' + Number(student.fee).toLocaleString('en-IN') + '</div>' +
+                    '<div style="margin-top: 40px; font-size: 12px; color: #888;">Thank you for your payment! This is a computer-generated receipt.</div>' +
+                '</div>';
+            
+            printWindow.document.open();
+            printWindow.document.write(receiptContent);
             printWindow.document.close();
+            
+            setTimeout(function() {
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
 
         function toggleTotalRevenue() {
