@@ -29,44 +29,86 @@
     <!-- Navigation -->
     <nav class="fixed w-full z-50 bg-white/85 backdrop-blur-md border-b border-slate-200 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <div class="flex items-center space-x-3">
-                    <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-600/20">
+            <div class="flex justify-between items-center h-16 sm:h-20 relative">
+
+                <!-- MOBILE VIEW: Left Hamburger Menu Button -->
+                <button onclick="toggleMobileMenu()" class="sm:hidden text-slate-800 p-1 text-2xl hover:text-indigo-600 focus:outline-none z-20 shrink-0">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <!-- DESKTOP VIEW: Left Logo & Address (Hidden on Mobile) -->
+                <div class="hidden sm:flex items-center space-x-3 min-w-0 z-20">
+                    <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-600/20 shrink-0">
                         <i class="fa-solid fa-book-open-reader text-xl"></i>
                     </div>
-                    <div>
-                        <span class="block text-xl font-bold text-slate-900 leading-tight">Friends Library</span>
-                        <span class="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Manesar, Gurugram</span>
+                    <div class="flex flex-col justify-center min-w-0">
+                        <span class="block text-xl font-bold text-slate-900 leading-tight truncate">Friends Library</span>
+                        <span class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight mt-0.5 truncate">Sector 1, Manesar</span>
+                        <span class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight truncate">Gurugram</span>
                     </div>
                 </div>
-                <div class="hidden md:flex space-x-8 items-center">
+
+                <!-- MOBILE VIEW: Centered Library Name (3 Lines) -->
+                <div class="absolute left-1/2 transform -translate-x-1/2 sm:hidden z-10 pointer-events-none flex flex-col items-center text-center w-full">
+                    <span class="block text-[15px] font-extrabold text-slate-900 leading-tight tracking-tight">Friends Library</span>
+                    <span class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-tight mt-0.5">Sector 1, Manesar</span>
+                    <span class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-tight">Gurugram</span>
+                </div>
+
+                <!-- DESKTOP VIEW: Center Menu Links -->
+                <div class="hidden lg:flex space-x-8 items-center absolute left-1/2 transform -translate-x-1/2 z-10">
                     <a href="#facilities" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Facilities</a>
                     <a href="#gallery" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Gallery</a>
                     <a href="#reviews" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Reviews</a>
                     <a href="#location" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Location</a>
                 </div>
-                <div class="flex space-x-3 items-center">
-                    <a href="student.html" class="hidden sm:inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition px-3">Member Login</a>
-                    <a href="register.html" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/20">Join Now</a>
+
+                <!-- Right Action Buttons -->
+                <div class="flex space-x-3 items-center shrink-0 z-20">
+                    <a href="login.html" class="hidden sm:inline-flex text-sm font-bold text-indigo-600 hover:text-indigo-700 transition px-3">Member Login</a>
+                    <a href="register.html" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] sm:text-sm font-bold px-3.5 py-1.5 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl transition shadow-md shadow-indigo-600/20 whitespace-nowrap">Join Now</a>
                 </div>
             </div>
+        </div>
+
+        <!-- MOBILE VIEW: Dropdown Menu (Activated by Hamburger) -->
+        <div id="mobile-menu" class="hidden sm:hidden absolute top-full left-0 w-full bg-white border-t border-slate-200 shadow-2xl pb-5 pt-3 px-6 flex flex-col space-y-4 z-50">
+            <!-- Portals -->
+            <a href="login.html" class="flex items-center text-slate-800 font-bold text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="bg-indigo-100 text-indigo-600 w-8 h-8 rounded flex items-center justify-center mr-3"><i class="fa-solid fa-shield-halved"></i></div>
+                Admin Login
+            </a>
+            <a href="student.html" class="flex items-center text-slate-800 font-bold text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="bg-indigo-100 text-indigo-600 w-8 h-8 rounded flex items-center justify-center mr-3"><i class="fa-solid fa-user-graduate"></i></div>
+                Student Portal
+            </a>
+
+            <hr class="border-slate-200 my-2">
+
+            <!-- Page Links -->
+            <a href="#facilities" onclick="toggleMobileMenu()" class="text-slate-600 text-sm font-semibold flex items-center"><i class="fa-solid fa-check w-6 text-slate-400"></i> Facilities</a>
+            <a href="#gallery" onclick="toggleMobileMenu()" class="text-slate-600 text-sm font-semibold flex items-center"><i class="fa-solid fa-image w-6 text-slate-400"></i> Gallery</a>
+            <a href="#reviews" onclick="toggleMobileMenu()" class="text-slate-600 text-sm font-semibold flex items-center"><i class="fa-solid fa-star w-6 text-slate-400"></i> Reviews</a>
+            <a href="#location" onclick="toggleMobileMenu()" class="text-slate-600 text-sm font-semibold flex items-center"><i class="fa-solid fa-location-dot w-6 text-slate-400"></i> Location</a>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <section class="relative pt-28 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div class="absolute inset-0 z-0">
-            <!-- Updated to use your local p1.png file -->
             <img src="p1.png" alt="Library Study Space" class="w-full h-full object-cover">
             <div class="absolute inset-0 bg-slate-900/80 mix-blend-multiply"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
         </div>
 
-        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-1.5 rounded-full text-xs font-semibold mb-6">
-                <span class="flex h-2 w-2 rounded-full bg-emerald-400"></span>
-                <span><b>Open 24 Hours</b></span>
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mt-4">
+
+            <!-- Bigger, bolder "Open 24 Hours" badge -->
+            <div class="inline-flex items-center space-x-2 sm:space-x-3 bg-white/20 backdrop-blur-md border border-white/30 text-white px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-lg font-bold mb-8 shadow-xl">
+                <span class="flex h-3 w-3 sm:h-4 sm:w-4 rounded-full bg-emerald-400 animate-pulse border-2 border-emerald-200"></span>
+                <span class="tracking-wide">Open 24 Hours</span>
             </div>
+
             <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white tracking-tight mb-6">
                 Your Focus.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Our Environment.</span>
             </h1>
@@ -149,7 +191,6 @@
                 <a href="register.html" class="hidden md:inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-6 py-2.5 rounded-lg transition">Reserve Your Seat</a>
             </div>
 
-            <!-- Updated to a 4-column grid using your local images -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
                     <img src="p1.png" alt="Library View 1" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
@@ -157,21 +198,18 @@
                         <span class="font-semibold text-sm text-white">Main Study Area</span>
                     </div>
                 </div>
-
                 <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
                     <img src="p2.png" alt="Library View 2" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
                         <span class="font-semibold text-sm text-white">Building</span>
                     </div>
                 </div>
-
                 <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
                     <img src="p4.png" alt="Library View 3" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
                         <span class="font-semibold text-sm text-white">Washrooms</span>
                     </div>
                 </div>
-
                 <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
                     <img src="p3.png" alt="Library View 4" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
@@ -202,7 +240,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Google Review 1 (Icons Removed) -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
                     <div class="flex items-center mb-4">
                         <img src="https://ui-avatars.com/api/?name=Naresh+Deshi&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
@@ -216,7 +253,6 @@
                     <p class="text-sm text-slate-600 italic">"Reasonably priced. No extra fees. The environment of the library is very peaceful and much comfortable. The management is extremely cooperative."</p>
                 </div>
 
-                <!-- Google Review 2 (Icons Removed) -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
                     <div class="flex items-center mb-4">
                         <img src="https://ui-avatars.com/api/?name=Divya+Sharma&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
@@ -230,7 +266,6 @@
                     <p class="text-sm text-slate-600 italic">"Best library in this area. Clean washrooms, well-maintained hygiene, and the AC is always working properly. Best facilities provided."</p>
                 </div>
 
-                <!-- Google Review 3 (Icons Removed) -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
                     <div class="flex items-center mb-4">
                         <img src="https://ui-avatars.com/api/?name=Akash+Kumar&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
@@ -287,8 +322,8 @@
                 </div>
 
                 <div class="h-80 sm:h-full min-h-[300px] rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-800 relative">
-                    <!-- Google Maps Embed for Sector 1 Manesar HSIIDC Market -->
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d45427.96117897332!2d76.92083561617386!3d28.367887536798737!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d3d8b7b00b859%3A0xbd0acb9729c6edf8!2sFriends%20library!5e0!3m2!1sen!2sin!4v1791037380205!5m2!1sen!2sin"
+                    <!-- Google Maps Embed -->
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3510.7752419652306!2d76.94621029999999!3d28.365644!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d3d8b7b00b859%3A0xbd0acb9729c6edf8!2sFriends%20library!5e0!3m2!1sen!2sin!4v1791041780963!5m2!1sen!2sin"
                         width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
                     </iframe>
                 </div>
@@ -304,6 +339,13 @@
         </div>
     </footer>
 
+    <!-- Script to toggle mobile menu -->
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
 </body>
 
 </html>
