@@ -65,7 +65,6 @@
                         <option value="6 Hours">6 Hours</option>
                         <option value="12 Hours">12 Hours</option>
                         <option value="24 Hours">24 Hours</option>
-                        <option value="Customize">Customize</option>
                     </select>
                 </div>
                 <div>
@@ -75,6 +74,8 @@
                         <option value="Quarterly">Quarterly</option>
                         <option value="Half-Yearly">Half-Yearly</option>
                         <option value="Yearly">Yearly</option>
+                        <!-- CUSTOMIZE MOVED HERE -->
+                        <option value="Customize">Customize</option>
                     </select>
                 </div>
 
@@ -121,8 +122,8 @@
         const API_BASE = '/api';
         const today = new Date().toISOString().split('T')[0];
 
-        // SHIFT CUSTOMIZE LISTENER: Changes the submit button text interactively
-        document.getElementById('reg-shift').addEventListener('change', function(e) {
+        // PLAN CUSTOMIZE LISTENER: Changes the submit button text interactively
+        document.getElementById('reg-plan').addEventListener('change', function(e) {
             const btn = document.getElementById('submitRegBtn');
             if (e.target.value === 'Customize') {
                 btn.innerText = "Submit (Admin will consult you soon)";
@@ -131,7 +132,6 @@
             }
         });
 
-        // SEAT MODAL LOGIC
         const seatModal = document.getElementById('seatModal');
         const gridContainer = document.getElementById('public-seat-grid');
         const loadingIndicator = document.getElementById('seatLoading');
@@ -194,7 +194,6 @@
             }
         }
 
-        // FORM SUBMISSION LOGIC
         document.getElementById('publicRegisterForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -204,7 +203,7 @@
                 return;
             }
 
-            const shiftSelected = document.getElementById('reg-shift').value;
+            const planSelected = document.getElementById('reg-plan').value;
             const btn = document.getElementById('submitRegBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Submitting...';
@@ -214,8 +213,8 @@
             formData.append('mobile', document.getElementById('reg-mobile').value);
             formData.append('aadhar', document.getElementById('reg-aadhar').value);
             formData.append('seatNo', seatInput);
-            formData.append('shift', shiftSelected);
-            formData.append('plan', document.getElementById('reg-plan').value);
+            formData.append('shift', document.getElementById('reg-shift').value);
+            formData.append('plan', planSelected);
 
             formData.append('fee', '0');
             formData.append('mode', 'Pending');
@@ -241,10 +240,9 @@
                 if (data.success) {
                     this.reset();
 
-                    // Displays the customized success message
                     const successBox = document.getElementById('success-msg');
-                    if (shiftSelected === 'Customize') {
-                        successBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Registration submitted! Admin will consult you soon to finalize your shift.';
+                    if (planSelected === 'Customize') {
+                        successBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Registration submitted! Admin will consult you soon to finalize your custom plan.';
                     } else {
                         successBox.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> Registration submitted successfully! Awaiting admin approval.';
                     }
@@ -262,9 +260,8 @@
                 alert("Server connection error.");
             } finally {
                 btn.disabled = false;
-                // Ensures button text resets accurately based on the form's state
-                const currentShiftState = document.getElementById('reg-shift').value;
-                btn.innerText = currentShiftState === 'Customize' ? "Submit (Admin will consult you soon)" : "Submit Registration for Approval";
+                const currentPlanState = document.getElementById('reg-plan').value;
+                btn.innerText = currentPlanState === 'Customize' ? "Submit (Admin will consult you soon)" : "Submit Registration for Approval";
             }
         });
     </script>
