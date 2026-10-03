@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends Library - Premier Study Space in Manesar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-white/85 backdrop-blur-md border-b border-slate-200 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-600/20">
+                        <i class="fa-solid fa-book-open-reader text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="block text-xl font-bold text-slate-900 leading-tight">Friends Library</span>
+                        <span class="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">Manesar, Gurugram</span>
+                    </div>
+                </div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#facilities" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Facilities</a>
+                    <a href="#gallery" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Gallery</a>
+                    <a href="#reviews" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Reviews</a>
+                    <a href="#location" class="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">Location</a>
+                </div>
+                <div class="flex space-x-3 items-center">
+                    <a href="student.html" class="hidden sm:inline-flex text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition px-3">Member Login</a>
+                    <a href="register.html" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-md shadow-indigo-600/20">Join Now</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <!-- Updated to use your local p1.png file -->
+            <img src="p1.png" alt="Library Study Space" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-slate-900/80 mix-blend-multiply"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-1.5 rounded-full text-xs font-semibold mb-6">
+                <span class="flex h-2 w-2 rounded-full bg-emerald-400"></span>
+                <span>Open for 6, 12, & 24 Hour Shifts</span>
+            </div>
+            <h1 class="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white tracking-tight mb-6">
+                Your Focus.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Our Environment.</span>
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-lg sm:text-xl text-slate-300 font-light mb-10">
+                The premier silent reading space at HSIIDC Market, Sector 1, Manesar. Designed for UPSC, SSC, CA, and university students demanding a distraction-free, premium study environment.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="register.html" class="bg-indigo-500 hover:bg-indigo-600 border border-indigo-400/50 text-white font-semibold text-lg px-8 py-4 rounded-xl transition shadow-xl shadow-indigo-600/30 flex items-center justify-center">
+                    Book Your Seat <i class="fa-solid fa-arrow-right ml-2"></i>
+                </a>
+                <a href="#location" class="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-semibold text-lg px-8 py-4 rounded-xl transition flex items-center justify-center">
+                    <i class="fa-solid fa-location-dot mr-2"></i> View Location
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Facilities Section -->
+    <section id="facilities" class="py-20 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-slate-900">Premium Facilities</h2>
+                <p class="mt-4 text-slate-500 max-w-2xl mx-auto">Everything you need to maintain peak concentration for hours.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-wifi text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">High-Speed Wi-Fi</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Dedicated leased line ensuring seamless video lectures and uninterrupted online mock tests.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-snowflake text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Fully Air-Conditioned</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Maintained at the perfect temperature year-round for maximum comfort during long study sessions.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-chair text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Ergonomic Seating</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Spacious desks with individual lighting, power sockets, and posture-supporting executive chairs.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-mug-hot text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Pantry & Dining Area</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">A dedicated, hygienic space to eat your lunch, make coffee, and take refreshing breaks away from the study zone.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-glass-water text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">RO Drinking Water</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Unlimited access to chilled, purified RO drinking water to keep you hydrated and alert.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition group">
+                    <div class="bg-indigo-50 w-14 h-14 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-newspaper text-2xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Daily Newspapers</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Complimentary daily English and Hindi national newspapers and monthly current affairs magazines.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Library Photo Gallery Section -->
+    <section id="gallery" class="py-20 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">Inside Friends Library</h2>
+                    <p class="mt-2 text-slate-400">A glimpse of our premium infrastructure and seating.</p>
+                </div>
+                <a href="register.html" class="hidden md:inline-block bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-6 py-2.5 rounded-lg transition">Reserve Your Seat</a>
+            </div>
+
+            <!-- Updated to a 4-column grid using your local images -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
+                    <img src="p1.png" alt="Library View 1" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
+                        <span class="font-semibold text-sm text-white">Main Study Area</span>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
+                    <img src="p2.png" alt="Library View 2" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
+                        <span class="font-semibold text-sm text-white">Building</span>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
+                    <img src="p4.png" alt="Library View 3" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
+                        <span class="font-semibold text-sm text-white">Washrooms</span>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl overflow-hidden h-64 border border-slate-700 relative group">
+                    <img src="p3.png" alt="Library View 4" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent flex items-end p-4">
+                        <span class="font-semibold text-sm text-white">Pantry & Break Area</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Google Reviews Section -->
+    <section id="reviews" class="py-20 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900">What Students Say</h2>
+                    <p class="mt-2 text-slate-500">Real verified feedback from Google Reviews.</p>
+                </div>
+                <div class="flex items-center space-x-4 bg-slate-50 border border-slate-200 px-6 py-3 rounded-2xl shadow-sm">
+                    <div class="text-4xl font-extrabold text-slate-900">5.0</div>
+                    <div>
+                        <div class="flex text-amber-400 text-sm">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                        </div>
+                        <div class="text-xs font-medium text-slate-500 mt-1">Excellent on Google</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Google Review 1 (Icons Removed) -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center mb-4">
+                        <img src="https://ui-avatars.com/api/?name=Naresh+Deshi&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">Naresh Deshi</h4>
+                            <div class="flex text-amber-400 text-[10px] mt-0.5">
+                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 italic">"Reasonably priced. No extra fees. The environment of the library is very peaceful and much comfortable. The management is extremely cooperative."</p>
+                </div>
+
+                <!-- Google Review 2 (Icons Removed) -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center mb-4">
+                        <img src="https://ui-avatars.com/api/?name=Divya+Sharma&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">Divya S.</h4>
+                            <div class="flex text-amber-400 text-[10px] mt-0.5">
+                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 italic">"Best library in this area. Clean washrooms, well-maintained hygiene, and the AC is always working properly. Best facilities provided."</p>
+                </div>
+
+                <!-- Google Review 3 (Icons Removed) -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+                    <div class="flex items-center mb-4">
+                        <img src="https://ui-avatars.com/api/?name=Akash+Kumar&background=f1f5f9&color=334155" alt="User" class="w-10 h-10 rounded-full mr-3">
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">Akash Kumar</h4>
+                            <div class="flex text-amber-400 text-[10px] mt-0.5">
+                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 italic">"Good experience! All facilities available -> mineral water, newspapers, full speed net, proper working AC. Very good environment for students."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location & Footer -->
+    <footer id="location" class="bg-slate-900 text-slate-300 pt-16 pb-8 border-t-[8px] border-indigo-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="bg-indigo-500 text-white p-2 rounded-lg">
+                            <i class="fa-solid fa-book-open-reader text-lg"></i>
+                        </div>
+                        <span class="text-3xl font-extrabold text-white">Friends Library</span>
+                    </div>
+                    <p class="text-sm text-slate-400 leading-relaxed mb-8 max-w-md">
+                        Empowering students with a disciplined, focused, and premium infrastructure to help achieve their academic and professional goals in Manesar.
+                    </p>
+                    <div class="space-y-4 text-sm bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                        <div class="flex items-start">
+                            <div class="bg-slate-800 p-2 rounded-lg mr-4 text-indigo-400"><i class="fa-solid fa-location-dot"></i></div>
+                            <div>
+                                <h5 class="text-white font-semibold mb-1">Our Address</h5>
+                                <span>2nd Floor, HSIIDC Market,<br>SCO T-14, Sector 1,<br>Manesar, Gurugram, Haryana - 122051</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-slate-800 p-2 rounded-lg mr-4 text-indigo-400"><i class="fa-solid fa-phone"></i></div>
+                            <div>
+                                <h5 class="text-white font-semibold">Phone</h5>
+                                <span>+91 70425 67070</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-slate-800 p-2 rounded-lg mr-4 text-indigo-400"><i class="fa-solid fa-envelope"></i></div>
+                            <div>
+                                <h5 class="text-white font-semibold">Email</h5>
+                                <span>friendslibrrary@gmail.com</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-80 sm:h-full min-h-[300px] rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-800 relative">
+                    <!-- Google Maps Embed for Sector 1 Manesar HSIIDC Market -->
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14035.792403588235!2d76.9298418!3d28.3610996!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d3e5e2e420459%3A0xc3b8a3b8fa3b5b1!2sSector%201%2C%20Imt%20Manesar%2C%20Gurugram%2C%20Haryana!5e0!3m2!1sen!2sin!4v1696340243452!5m2!1sen!2sin"
+                        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
+                <p>&copy; 2026 Friends Library, Manesar. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="login.html" class="hover:text-indigo-400 transition font-medium"><i class="fa-solid fa-shield-halved mr-1"></i> Admin Login</a>
+                    <a href="student.html" class="hover:text-indigo-400 transition font-medium"><i class="fa-solid fa-user-graduate mr-1"></i> Student Portal</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
