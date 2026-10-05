@@ -13,6 +13,10 @@
             font-family: 'Inter', sans-serif;
         }
     </style>
+    <!-- Google Firebase Phone Authentication SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
 </head>
 
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col">
@@ -36,17 +40,89 @@
 
         <!-- Login View -->
         <div id="login-section" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mt-12">
-            <h2 class="text-2xl font-bold text-slate-900 mb-2">Member Login</h2>
-            <p class="text-slate-500 text-sm mb-6">Enter your registered mobile number to view your membership and receipts.</p>
-
-            <form id="studentLoginForm" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Mobile Number</label>
-                    <input type="text" id="login-mobile" required placeholder="e.g. 9876543210" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                    <i class="fa-solid fa-shield-halved"></i>
                 </div>
-                <div id="login-error" class="hidden text-red-500 text-xs"></div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow-sm text-sm">
-                    View Membership Details
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Student Portal Login</h2>
+                    <p class="text-xs text-slate-500">Secure access via Mobile Verification</p>
+                </div>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="login-error" class="hidden mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
+                <span id="error-message-text"></span>
+            </div>
+
+            <!-- Firebase Setup Pending Banner (Shown only if keys are not configured yet) -->
+            <div id="firebase-pending-banner" class="hidden mb-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-1.5">
+                <div class="flex items-center font-semibold text-amber-900">
+                    <i class="fa-solid fa-circle-info mr-1.5 text-amber-600"></i>
+                    <span>Firebase Phone Auth Pending Setup</span>
+                </div>
+                <p class="text-[11px] text-amber-700 leading-relaxed">
+                    Paste your free Firebase keys in <code class="bg-amber-100 px-1 py-0.5 rounded font-mono">public/firebase-config.js</code> to enable real SMS OTPs.
+                </p>
+            </div>
+
+            <!-- Step 1: Mobile Form -->
+            <form id="step-mobile-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Registered Mobile Number</label>
+                    <div class="relative flex items-center">
+                        <span class="absolute left-3 text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200 select-none">
+                            🇮🇳 +91
+                        </span>
+                        <input type="tel" id="login-mobile" maxlength="10" required placeholder="9876543210" pattern="[0-9]{10}"
+                            class="w-full pl-20 pr-4 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 font-mono tracking-wide">
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">We will send a 6-digit SMS verification code to your phone.</p>
+                </div>
+
+                <!-- Invisible reCAPTCHA container for Firebase -->
+                <div id="recaptcha-container"></div>
+
+                <button type="submit" id="btn-send-sms"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow-sm text-sm flex items-center justify-center">
+                    <i class="fa-solid fa-comment-sms mr-2 text-xs"></i> Send SMS Verification Code
+                </button>
+
+                <!-- Dev Mode Fallback Button (visible if Firebase keys are pending) -->
+                <button type="button" id="btn-dev-login" class="hidden w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-lg transition text-xs border border-slate-200">
+                    <i class="fa-solid fa-bolt mr-1.5 text-amber-600"></i> Direct Login (Bypass SMS during setup)
+                </button>
+            </form>
+
+            <!-- Step 2: OTP Verification Form -->
+            <form id="step-otp-form" class="hidden space-y-4">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] text-slate-500">Code sent via SMS to:</p>
+                        <p class="text-xs font-bold font-mono text-slate-800" id="display-otp-phone">+91 ----------</p>
+                    </div>
+                    <button type="button" onclick="backToStep1()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                        Change
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit SMS Code</label>
+                    <input type="text" id="login-otp-code" maxlength="6" required placeholder="• • • • • •"
+                        class="w-full py-2.5 text-center text-lg tracking-widest font-mono border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                    <span id="resend-timer-text">Resend code in <strong id="resend-countdown">30s</strong></span>
+                    <button type="button" id="btn-resend-sms" disabled onclick="resendSmsCode()" class="font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Resend SMS
+                    </button>
+                </div>
+
+                <button type="submit" id="btn-verify-code"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition shadow-sm text-sm flex items-center justify-center">
+                    <i class="fa-solid fa-check text-xs mr-2"></i> Verify & Sign In
                 </button>
             </form>
         </div>
@@ -133,46 +209,245 @@
             day: 'numeric'
         });
 
-        // LIVE VERCEL API LINK
+        // API & State Variables
         const API_BASE = '/api';
         let currentReceiptsList = [];
+        let pendingStudent = null;
+        let activeMobile = '';
+        let resendInterval = null;
 
-        const savedMobile = localStorage.getItem('studentMobile');
-        if (savedMobile) {
-            fetchStudentData(savedMobile);
+        // Firebase Configuration Status
+        const firebaseReady = (typeof isFirebaseReady !== 'undefined' && isFirebaseReady);
+        if (!firebaseReady) {
+            const banner = document.getElementById('firebase-pending-banner');
+            const devBtn = document.getElementById('btn-dev-login');
+            if (banner) banner.classList.remove('hidden');
+            if (devBtn) devBtn.classList.remove('hidden');
         }
 
-        document.getElementById('studentLoginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const mobileInput = document.getElementById('login-mobile').value.trim();
-            fetchStudentData(mobileInput);
-        });
+        // Show/hide error banner
+        function showError(msg) {
+            const errBox = document.getElementById('login-error');
+            const errText = document.getElementById('error-message-text');
+            if (msg) {
+                errText.innerText = msg;
+                errBox.classList.remove('hidden');
+            } else {
+                errBox.classList.add('hidden');
+            }
+        }
 
-        async function fetchStudentData(mobile) {
-            const errorBox = document.getElementById('login-error');
-            errorBox.classList.add('hidden');
+        // Initialize invisible reCAPTCHA for Firebase Phone Auth
+        function getRecaptchaVerifier() {
+            if (!window.recaptchaVerifier && firebaseReady) {
+                window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                    'size': 'invisible',
+                    'callback': () => {},
+                    'expired-callback': () => {
+                        if (window.recaptchaVerifier) {
+                            try { window.recaptchaVerifier.clear(); } catch(e){}
+                            window.recaptchaVerifier = null;
+                        }
+                    }
+                });
+            }
+            return window.recaptchaVerifier;
+        }
+
+        // Auto-login if previously logged in
+        const savedMobile = localStorage.getItem('studentMobile');
+        if (savedMobile) {
+            fetchStudentProfile(savedMobile);
+        }
+
+        // Step 1: Send SMS OTP
+        document.getElementById('step-mobile-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showError(null);
+
+            const rawMobile = document.getElementById('login-mobile').value.trim();
+            const clean = rawMobile.replace(/\D/g, '').slice(-10);
+            if (clean.length !== 10) {
+                showError("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+
+            const sendBtn = document.getElementById('btn-send-sms');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Checking student database...';
 
             try {
                 const response = await fetch(API_BASE + '/students');
                 if (!response.ok) throw new Error('Network error');
                 const students = await response.json();
+                const student = students.find(s => s.mobile && s.mobile.replace(/\D/g, '').includes(clean));
 
-                const student = students.find(function(s) {
-                    return s.mobile === mobile;
-                });
+                if (!student) {
+                    showError("This mobile number is not registered with Friends Library. Please contact management.");
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fa-solid fa-comment-sms mr-2 text-xs"></i> Send SMS Verification Code';
+                    return;
+                }
 
+                pendingStudent = student;
+                activeMobile = clean;
+
+                if (!firebaseReady) {
+                    showError("Firebase is pending setup in public/firebase-config.js. Use 'Direct Login' below for instant access.");
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = '<i class="fa-solid fa-comment-sms mr-2 text-xs"></i> Send SMS Verification Code';
+                    return;
+                }
+
+                sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Sending SMS via Google...';
+                const verifier = getRecaptchaVerifier();
+                const confirmationResult = await firebase.auth().signInWithPhoneNumber('+91' + clean, verifier);
+                window.confirmationResult = confirmationResult;
+
+                // Show Step 2
+                document.getElementById('step-mobile-form').classList.add('hidden');
+                document.getElementById('step-otp-form').classList.remove('hidden');
+                document.getElementById('display-otp-phone').innerText = `+91 ${clean.slice(0, 5)} ${clean.slice(5)}`;
+                document.getElementById('login-otp-code').value = '';
+                document.getElementById('login-otp-code').focus();
+
+                startResendTimer(30);
+
+            } catch (err) {
+                console.error("SMS send error:", err);
+                if (window.recaptchaVerifier) {
+                    try { window.recaptchaVerifier.clear(); } catch(e){}
+                    window.recaptchaVerifier = null;
+                }
+                showError(err.message || "Could not send SMS verification code. Please check your connection.");
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fa-solid fa-comment-sms mr-2 text-xs"></i> Send SMS Verification Code';
+            }
+        });
+
+        // Step 2: Verify OTP
+        document.getElementById('step-otp-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            showError(null);
+
+            const otpCode = document.getElementById('login-otp-code').value.trim();
+            if (otpCode.length !== 6) {
+                showError("Please enter the complete 6-digit SMS verification code.");
+                return;
+            }
+
+            const verifyBtn = document.getElementById('btn-verify-code');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying with Google...';
+
+            try {
+                if (!window.confirmationResult) {
+                    throw new Error("No active verification session. Please resend the SMS code.");
+                }
+
+                await window.confirmationResult.confirm(otpCode);
+                localStorage.setItem('studentMobile', pendingStudent.mobile);
+                renderStudentDashboard(pendingStudent);
+                fetchStudentReceipts(pendingStudent.id);
+            } catch (err) {
+                console.error("Verification error:", err);
+                showError("Invalid or expired SMS code. Please check your SMS and try again.");
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<i class="fa-solid fa-check text-xs mr-2"></i> Verify & Sign In';
+            }
+        });
+
+        // Direct Login (Fallback button when Firebase keys are not yet configured)
+        const devLoginBtn = document.getElementById('btn-dev-login');
+        if (devLoginBtn) {
+            devLoginBtn.addEventListener('click', async function() {
+                showError(null);
+                const rawMobile = document.getElementById('login-mobile').value.trim();
+                const clean = rawMobile.replace(/\D/g, '').slice(-10);
+                if (clean.length !== 10) {
+                    showError("Please enter a valid 10-digit mobile number first.");
+                    return;
+                }
+                try {
+                    const response = await fetch(API_BASE + '/students');
+                    const students = await response.json();
+                    const student = students.find(s => s.mobile && s.mobile.replace(/\D/g, '').includes(clean));
+                    if (student) {
+                        localStorage.setItem('studentMobile', student.mobile);
+                        renderStudentDashboard(student);
+                        fetchStudentReceipts(student.id);
+                    } else {
+                        showError("No student registered with this mobile number.");
+                    }
+                } catch (err) {
+                    showError("Could not connect to library server.");
+                }
+            });
+        }
+
+        function backToStep1() {
+            if (resendInterval) clearInterval(resendInterval);
+            document.getElementById('step-otp-form').classList.add('hidden');
+            document.getElementById('step-mobile-form').classList.remove('hidden');
+            document.getElementById('login-otp-code').value = '';
+            showError(null);
+            document.getElementById('login-mobile').focus();
+        }
+
+        function startResendTimer(seconds) {
+            if (resendInterval) clearInterval(resendInterval);
+            const countdownEl = document.getElementById('resend-countdown');
+            const resendBtn = document.getElementById('btn-resend-sms');
+            resendBtn.disabled = true;
+
+            let remaining = seconds;
+            countdownEl.innerText = `${remaining}s`;
+
+            resendInterval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(resendInterval);
+                    countdownEl.innerText = "Available";
+                    resendBtn.disabled = false;
+                } else {
+                    countdownEl.innerText = `${remaining}s`;
+                }
+            }, 1000);
+        }
+
+        async function resendSmsCode() {
+            if (!activeMobile || !firebaseReady) return;
+            showError(null);
+            const resendBtn = document.getElementById('btn-resend-sms');
+            resendBtn.disabled = true;
+
+            try {
+                const verifier = getRecaptchaVerifier();
+                const confirmationResult = await firebase.auth().signInWithPhoneNumber('+91' + activeMobile, verifier);
+                window.confirmationResult = confirmationResult;
+                startResendTimer(30);
+            } catch (err) {
+                showError("Failed to resend SMS: " + err.message);
+                resendBtn.disabled = false;
+            }
+        }
+
+        async function fetchStudentProfile(mobile) {
+            try {
+                const response = await fetch(API_BASE + '/students');
+                if (!response.ok) throw new Error('Network error');
+                const students = await response.json();
+                const student = students.find(s => s.mobile && s.mobile.replace(/\D/g, '').includes(mobile.replace(/\D/g, '').slice(-10)));
                 if (student) {
-                    localStorage.setItem('studentMobile', student.mobile);
                     renderStudentDashboard(student);
                     fetchStudentReceipts(student.id);
                 } else {
-                    errorBox.innerText = "No student found with this mobile number.";
-                    errorBox.classList.remove('hidden');
+                    localStorage.removeItem('studentMobile');
                 }
-            } catch (error) {
-                console.error("Error:", error);
-                errorBox.innerText = "Could not connect to server. Please try again.";
-                errorBox.classList.remove('hidden');
+            } catch (err) {
+                console.error("Profile load error:", err);
             }
         }
 
@@ -295,10 +570,15 @@
 
         document.getElementById('studentLogoutBtn').addEventListener('click', function() {
             localStorage.removeItem('studentMobile');
+            if (firebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
+                try { firebase.auth().signOut(); } catch(e){}
+            }
             currentReceiptsList = [];
+            pendingStudent = null;
             document.getElementById('dashboard-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('studentLoginForm').reset();
+            document.getElementById('login-mobile').value = '';
+            backToStep1();
         });
     </script>
 </body>
