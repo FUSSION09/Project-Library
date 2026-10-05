@@ -165,6 +165,13 @@
                     }
                 });
 
+                // Include any extra occupied seats (e.g. J, NR)
+                Object.keys(seatMapping).forEach(extraSeat => {
+                    if (!allSeatNames.includes(extraSeat) && extraSeat !== 'Pending') {
+                        allSeatNames.push(extraSeat);
+                    }
+                });
+
                 for (const seatName of allSeatNames) {
                     const isOccupied = !!seatMapping[seatName];
                     const seatDiv = document.createElement('div');

@@ -2,9 +2,13 @@
   "name": "project-library",
   "version": "1.0.0",
   "description": "make a page for admin only for the managment of the library if in which we have the record of students like first of all they are catagorised by hours of 6hours, 12 hours and 24 hours and detais of student like seat number or serial number, name of the student, mobile number, adhar number, monthly joined membership time like monthly quarterly or yearly or halfyearly , seat number, card number, fees, cash or upi, last payment date, join due date remarks like leaving paid for how much month and please add monthly profit also how much we earned, make the student yellow when payment is due 3 days before and at last date make the student red if payment is not updated and add fielter also",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "seed": "node scripts/seed_supabase.js",
+    "generate-data": "node scripts/generate_data_files.js",
+    "test": "node scripts/test_api.js"
   },
   "keywords": [],
   "author": "",
