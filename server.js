@@ -4,6 +4,14 @@ const app = require('./api/index.js');
 
 const PORT = process.env.PORT || 3000;
 
+// Prevent caching for HTML/dashboard pages to protect logout and back-button navigation
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
+
 // Serve static frontend assets from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 

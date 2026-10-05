@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Management - Student Portal</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Friends Library - Student Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -19,12 +22,15 @@
 
     <header class="bg-slate-900 text-white shadow-md flex-shrink-0 relative z-10">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
+            <a href="index.html" class="flex items-center space-x-3 hover:opacity-90 transition cursor-pointer" title="Go to Home Page">
                 <div class="bg-indigo-500 p-2 rounded-lg">
                     <i class="fa-solid fa-graduation-cap"></i>
                 </div>
-                <span class="text-lg font-bold tracking-wide">Student Portal</span>
-            </div>
+                <div>
+                    <span class="text-base sm:text-lg font-bold tracking-wide block leading-tight">Friends Library</span>
+                    <span class="text-[10px] text-slate-400 font-medium block">Student Portal</span>
+                </div>
+            </a>
             <div class="flex items-center space-x-4 text-sm">
                 <span class="text-slate-300"><i class="fa-regular fa-calendar mr-1"></i> <span id="currentDateDisplay"></span></span>
                 <button id="studentLogoutBtn" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg transition border border-slate-700">Logout</button>
@@ -495,8 +501,17 @@
             }
         }
 
+        window.addEventListener('pageshow', function (event) {
+            const currentMobile = localStorage.getItem('studentMobile');
+            if (!currentMobile) {
+                document.getElementById('dashboard-section').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
+            }
+        });
+
         document.getElementById('studentLogoutBtn').addEventListener('click', function() {
             localStorage.removeItem('studentMobile');
+            sessionStorage.clear();
             currentReceiptsList = [];
             document.getElementById('dashboard-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');

@@ -4,7 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Library Management - Staff Login</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Friends Library - Staff Login</title>
+    <script>
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            window.location.replace('admin.html');
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,12 +32,12 @@
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/90 to-transparent"></div>
 
         <div class="relative z-10 flex flex-col justify-between p-12 h-full w-full">
-            <div class="flex items-center space-x-3 text-white">
+            <a href="index.html" class="flex items-center space-x-3 text-white hover:opacity-90 transition cursor-pointer" title="Go to Home Page">
                 <div class="bg-indigo-600 p-2.5 rounded-xl shadow-lg">
                     <i class="fa-solid fa-server text-xl"></i>
                 </div>
-                <span class="text-2xl font-bold tracking-tight">Library Management System</span>
-            </div>
+                <span class="text-2xl font-bold tracking-tight">Friends Library</span>
+            </a>
 
             <div class="space-y-6 text-white max-w-lg">
                 <h1 class="text-4xl font-bold leading-tight">Internal Staff Portal</h1>
@@ -39,7 +47,7 @@
             </div>
 
             <div class="text-slate-500 text-sm">
-                &copy; 2026 Library Management System
+                &copy; 2026 Friends Library Management System
             </div>
         </div>
     </div>
@@ -48,12 +56,12 @@
     <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-white">
 
         <!-- Mobile Logo (Visible only on small screens) -->
-        <div class="absolute top-8 left-8 flex lg:hidden items-center space-x-3 text-slate-900">
+        <a href="index.html" class="absolute top-8 left-8 flex lg:hidden items-center space-x-3 text-slate-900 hover:opacity-80 transition cursor-pointer" title="Go to Home Page">
             <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
                 <i class="fa-solid fa-server"></i>
             </div>
-            <span class="text-xl font-bold tracking-tight">LMS Admin</span>
-        </div>
+            <span class="text-xl font-bold tracking-tight">Friends Library</span>
+        </a>
 
         <div class="w-full max-w-md space-y-8">
             <div>
@@ -152,7 +160,7 @@
                 if (response.ok && data.success) {
                     // Login successful! Save session locally and redirect
                     localStorage.setItem('isLoggedIn', 'true');
-                    window.location.href = 'admin.html';
+                    window.location.replace('admin.html');
                 } else {
                     // Login failed (wrong password/username)
                     errorText.innerText = data.message || "Invalid credentials. Please try again.";

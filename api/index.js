@@ -323,36 +323,53 @@ app.get('/api/seats-shift-status', async(req, res) => {
 
 // 7. Public Student Registration
 app.post('/api/register', upload.single('photo'), async(req, res) => {
-    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks } = req.body;
-    const photoUrl = await uploadToSupabase(req.file);
+    try {
+        const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks } = req.body;
+        
+        let photoUrl = null;
+        if (req.file) {
+            if (supabase) {
+                photoUrl = await uploadToSupabase(req.file);
+            } else {
+                const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+                const photoFileName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                fs.writeFileSync(path.join(uploadDir, photoFileName), req.file.buffer);
+                photoUrl = `/uploads/${photoFileName}`;
+            }
+        }
 
-    const pendingRecord = {
-        id: Date.now(),
-        photo: photoUrl,
-        seatNo: seatNo || 'Pending',
-        name,
-        shift: shift || '12 Hours',
-        mobile,
-        aadhar: aadhar || '',
-        joiningDate: joiningDate || new Date().toISOString().split('T')[0],
-        plan: plan || 'Monthly',
-        cardNo: cardNo || '',
-        fee: fee ? Number(fee) : 0,
-        mode: mode || 'Cash',
-        lastPaid: lastPaid || '',
-        dueDate: dueDate || '',
-        remarks: remarks || '',
-        submitted_at: new Date().toISOString()
-    };
+        const pendingRecord = {
+            id: Date.now(),
+            photo: photoUrl,
+            seatNo: seatNo || 'Pending',
+            name: name ? name.trim() : 'Anonymous',
+            shift: shift || '12 Hours',
+            mobile: mobile ? mobile.trim() : '',
+            aadhar: aadhar ? aadhar.trim() : '',
+            joiningDate: joiningDate || new Date().toISOString().split('T')[0],
+            plan: plan || 'Monthly',
+            cardNo: cardNo ? cardNo.trim() : '',
+            fee: (fee !== undefined && !isNaN(Number(fee))) ? Number(fee) : 0,
+            mode: mode || 'Cash',
+            lastPaid: lastPaid || '',
+            dueDate: dueDate || '',
+            remarks: remarks ? remarks.trim() : '',
+            submitted_at: new Date().toISOString()
+        };
 
-    if (supabase) {
-        const { error } = await supabase.from('pending_registrations').insert([pendingRecord]);
-        if (error) return res.status(500).json({ success: false, error: error.message });
-        return res.json({ success: true, message: 'Registration submitted successfully!' });
+        if (supabase) {
+            const { error } = await supabase.from('pending_registrations').insert([pendingRecord]);
+            if (error) return res.status(500).json({ success: false, error: error.message });
+            return res.json({ success: true, message: 'Registration submitted successfully!' });
+        }
+
+        localPending.unshift(pendingRecord);
+        res.json({ success: true, message: 'Registration submitted successfully!' });
+    } catch (err) {
+        console.error('Registration error:', err);
+        res.status(500).json({ success: false, error: err.message || 'Server error during registration.' });
     }
-
-    localPending.unshift(pendingRecord);
-    res.json({ success: true, message: 'Registration submitted successfully!' });
 });
 
 // 8. Pending Registrations List
@@ -466,130 +483,163 @@ app.delete('/api/pending-registrations/:id', async(req, res) => {
 
 // 11. Add Student (Direct Admin)
 app.post('/api/students', upload.single('photo'), async(req, res) => {
-    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
-    const photoUrl = await uploadToSupabase(req.file);
-    const studentPassword = (password && password.trim()) ? password.trim() : '123456';
+    try {
+        const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
+        
+        let photoUrl = null;
+        if (req.file) {
+            if (supabase) {
+                photoUrl = await uploadToSupabase(req.file);
+            } else {
+                const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+                const photoFileName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                fs.writeFileSync(path.join(uploadDir, photoFileName), req.file.buffer);
+                photoUrl = `/uploads/${photoFileName}`;
+            }
+        }
 
-    if (supabase) {
-        const { data, error } = await supabase.from('students').insert([{
+        const studentPassword = (password && password.trim()) ? password.trim() : '123456';
+        const parsedFee = (fee !== undefined && !isNaN(Number(fee))) ? Number(fee) : 0;
+        const cleanAadhar = aadhar ? aadhar.trim() : '';
+
+        if (supabase) {
+            const { data, error } = await supabase.from('students').insert([{
+                photo: photoUrl,
+                seatNo: seatNo || 'Pending',
+                name: name ? name.trim() : '',
+                shift: shift || '12 Hours',
+                mobile: mobile ? mobile.trim() : '',
+                aadhar: cleanAadhar,
+                joiningDate: joiningDate || new Date().toISOString().split('T')[0],
+                plan: plan || 'Monthly',
+                cardNo: cardNo ? cardNo.trim() : '',
+                fee: parsedFee,
+                mode: mode || 'Cash',
+                lastPaid: lastPaid || '',
+                dueDate: dueDate || '',
+                remarks: remarks ? remarks.trim() : '',
+                password: studentPassword
+            }]).select();
+
+            if (error) return res.status(500).json({ success: false, error: error.message });
+
+            const newStudent = data[0];
+            const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
+            await supabase.from('receipts').insert([{
+                student_id: newStudent.id,
+                receipt_no: receiptNo,
+                student_name: name,
+                seat_no: seatNo,
+                fee: parsedFee,
+                mode: mode || 'Cash',
+                plan: plan || 'Monthly',
+                payment_date: lastPaid || new Date().toISOString().split('T')[0]
+            }]);
+
+            return res.json({ success: true, id: newStudent.id });
+        }
+
+        const newId = localStudents.length > 0 ? Math.max(...localStudents.map(s => Number(s.id) || 0)) + 1 : 1;
+        const newStudent = {
+            id: newId,
+            numericId: newId,
             photo: photoUrl,
-            seatNo,
-            name,
-            shift,
-            mobile,
-            aadhar,
-            joiningDate,
-            plan,
-            cardNo: cardNo || '',
-            fee: fee ? Number(fee) : 0,
-            mode,
-            lastPaid,
-            dueDate,
-            remarks: remarks || '',
+            seatNo: seatNo || 'Pending',
+            name: name ? name.trim() : '',
+            shift: shift || '12 Hours',
+            mobile: mobile ? mobile.trim() : '',
+            aadhar: cleanAadhar,
+            joiningDate: joiningDate || new Date().toISOString().split('T')[0],
+            plan: plan || 'Monthly',
+            cardNo: cardNo ? cardNo.trim() : '',
+            fee: parsedFee,
+            mode: mode || 'Cash',
+            lastPaid: lastPaid || '',
+            dueDate: dueDate || '',
+            remarks: remarks ? remarks.trim() : '',
             password: studentPassword
-        }]).select();
+        };
 
-        if (error) return res.status(500).json({ error: error.message });
+        localStudents.unshift(newStudent);
+        saveLocalData();
 
-        const newStudent = data[0];
         const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
-        await supabase.from('receipts').insert([{
-            student_id: newStudent.id,
+        localReceipts.unshift({
+            id: localReceipts.length + 1,
+            student_id: newId,
             receipt_no: receiptNo,
             student_name: name,
             seat_no: seatNo,
-            fee: Number(fee),
-            mode,
-            plan,
-            payment_date: lastPaid
-        }]);
+            fee: parsedFee,
+            mode: mode || 'Cash',
+            plan: plan || 'Monthly',
+            payment_date: lastPaid || new Date().toISOString().split('T')[0]
+        });
 
-        return res.json({ success: true, id: newStudent.id });
+        res.json({ success: true, id: newId });
+    } catch (err) {
+        console.error('Error adding student:', err);
+        res.status(500).json({ success: false, error: err.message || 'Server error adding student' });
     }
-
-    const newId = localStudents.length > 0 ? Math.max(...localStudents.map(s => s.id || 0)) + 1 : 1;
-    const newStudent = {
-        id: newId,
-        numericId: newId,
-        photo: photoUrl,
-        seatNo: seatNo || 'Pending',
-        name,
-        shift: shift || '12 Hours',
-        mobile,
-        aadhar: aadhar || '',
-        joiningDate: joiningDate || new Date().toISOString().split('T')[0],
-        plan: plan || 'Monthly',
-        cardNo: cardNo || '',
-        fee: fee ? Number(fee) : 0,
-        mode: mode || 'Cash',
-        lastPaid: lastPaid || '',
-        dueDate: dueDate || '',
-        remarks: remarks || '',
-        password: studentPassword
-    };
-
-    localStudents.unshift(newStudent);
-    saveLocalData();
-
-    const receiptNo = `REC-${Date.now().toString().slice(-6)}`;
-    localReceipts.unshift({
-        id: localReceipts.length + 1,
-        student_id: newId,
-        receipt_no: receiptNo,
-        student_name: name,
-        seat_no: seatNo,
-        fee: Number(fee),
-        mode,
-        plan,
-        payment_date: lastPaid
-    });
-
-    res.json({ success: true, id: newId });
 });
 
 // 12. Update Student
 app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
-    const id = req.params.id;
-    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
+    try {
+        const id = req.params.id;
+        const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
 
-    const updatePayload = {
-        seatNo,
-        name,
-        shift,
-        mobile,
-        aadhar,
-        joiningDate,
-        plan,
-        cardNo,
-        fee: Number(fee),
-        mode,
-        lastPaid,
-        dueDate,
-        remarks
-    };
+        const updatePayload = {
+            seatNo: seatNo !== undefined ? seatNo : '',
+            name: name !== undefined ? name : '',
+            shift: shift || '12 Hours',
+            mobile: mobile !== undefined ? mobile : '',
+            aadhar: aadhar ? aadhar.trim() : '',
+            joiningDate: joiningDate || '',
+            plan: plan || 'Monthly',
+            cardNo: cardNo || '',
+            fee: (fee !== undefined && !isNaN(Number(fee))) ? Number(fee) : 0,
+            mode: mode || 'Cash',
+            lastPaid: lastPaid || '',
+            dueDate: dueDate || '',
+            remarks: remarks || ''
+        };
 
-    if (password && password.trim()) {
-        updatePayload.password = password.trim();
-    }
-
-    if (supabase) {
-        if (req.file) {
-            updatePayload.photo = await uploadToSupabase(req.file);
+        if (password && password.trim()) {
+            updatePayload.password = password.trim();
         }
 
-        const { error } = await supabase.from('students').update(updatePayload).eq('id', id);
-        if (error) return res.status(500).json({ error: error.message });
+        if (req.file) {
+            if (supabase) {
+                updatePayload.photo = await uploadToSupabase(req.file);
+            } else {
+                const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+                const photoFileName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                fs.writeFileSync(path.join(uploadDir, photoFileName), req.file.buffer);
+                updatePayload.photo = `/uploads/${photoFileName}`;
+            }
+        }
 
-        return res.json({ success: true, message: 'Student updated successfully' });
+        if (supabase) {
+            const { error } = await supabase.from('students').update(updatePayload).eq('id', id);
+            if (error) return res.status(500).json({ success: false, error: error.message });
+
+            return res.json({ success: true, message: 'Student updated successfully' });
+        }
+
+        const student = localStudents.find(s => String(s.id) === String(id) || String(s.numericId) === String(id));
+        if (!student) return res.status(404).json({ success: false, error: `Student with ID ${id} not found.` });
+
+        Object.assign(student, updatePayload);
+        saveLocalData();
+
+        res.json({ success: true, message: 'Student updated successfully', student });
+    } catch (err) {
+        console.error('Error updating student:', err);
+        res.status(500).json({ success: false, error: err.message || 'Server error updating student.' });
     }
-
-    const student = localStudents.find(s => String(s.id) === String(id));
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    Object.assign(student, updatePayload);
-    saveLocalData();
-
-    res.json({ success: true, message: 'Student updated successfully' });
 });
 
 // 13. Adjust Leave / Extend Due Date
