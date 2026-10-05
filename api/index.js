@@ -195,7 +195,15 @@ app.put('/api/students/:id/password', async (req, res) => {
                 .update({ password: newPassword })
                 .eq('id', id);
 
-            if (error) return res.status(500).json({ success: false, message: error.message });
+            if (error) {
+                if (error.message && error.message.includes("'password' column")) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "The 'password' column has not been added to your Supabase 'students' table yet. Run: ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456'; in Supabase SQL Editor."
+                    });
+                }
+                return res.status(500).json({ success: false, message: error.message });
+            }
             return res.json({ success: true, message: 'Password updated successfully!', password: newPassword });
         }
 
@@ -402,26 +410,35 @@ app.post('/api/approve-registration/:id', async(req, res) => {
         }
 
         const student = pendingRows[0];
-        const { data: insertedStudent, error: insertError } = await supabase
+        let approvePayload = {
+            photo: student.photo,
+            seatNo: student.seatNo,
+            name: student.name,
+            shift: student.shift,
+            mobile: student.mobile,
+            aadhar: student.aadhar,
+            joiningDate: student.joiningDate,
+            plan: student.plan,
+            cardNo: student.cardNo,
+            fee: student.fee,
+            mode: student.mode,
+            lastPaid: student.lastPaid,
+            dueDate: student.dueDate,
+            remarks: student.remarks,
+            password: student.password || '123456'
+        };
+
+        let { data: insertedStudent, error: insertError } = await supabase
             .from('students')
-            .insert([{
-                photo: student.photo,
-                seatNo: student.seatNo,
-                name: student.name,
-                shift: student.shift,
-                mobile: student.mobile,
-                aadhar: student.aadhar,
-                joiningDate: student.joiningDate,
-                plan: student.plan,
-                cardNo: student.cardNo,
-                fee: student.fee,
-                mode: student.mode,
-                lastPaid: student.lastPaid,
-                dueDate: student.dueDate,
-                remarks: student.remarks,
-                password: student.password || '123456'
-            }])
+            .insert([approvePayload])
             .select();
+
+        if (insertError && insertError.message && insertError.message.includes("'password' column")) {
+            delete approvePayload.password;
+            const retry = await supabase.from('students').insert([approvePayload]).select();
+            insertedStudent = retry.data;
+            insertError = retry.error;
+        }
 
         if (insertError) return res.status(500).json({ success: false, error: insertError.message });
 
@@ -504,7 +521,7 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
         const cleanAadhar = aadhar ? aadhar.trim() : '';
 
         if (supabase) {
-            const { data, error } = await supabase.from('students').insert([{
+            let studentPayload = {
                 photo: photoUrl,
                 seatNo: seatNo || 'Pending',
                 name: name ? name.trim() : '',
@@ -520,7 +537,17 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
                 dueDate: dueDate || '',
                 remarks: remarks ? remarks.trim() : '',
                 password: studentPassword
-            }]).select();
+            };
+
+            let { data, error } = await supabase.from('students').insert([studentPayload]).select();
+
+            if (error && error.message && error.message.includes("'password' column")) {
+                console.warn('[Supabase] "password" column not found in students table. Retrying insert without password...');
+                delete studentPayload.password;
+                const retry = await supabase.from('students').insert([studentPayload]).select();
+                data = retry.data;
+                error = retry.error;
+            }
 
             if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -623,7 +650,16 @@ app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
         }
 
         if (supabase) {
-            const { error } = await supabase.from('students').update(updatePayload).eq('id', id);
+            let updateData = { ...updatePayload };
+            let { error } = await supabase.from('students').update(updateData).eq('id', id);
+
+            if (error && error.message && error.message.includes("'password' column")) {
+                console.warn('[Supabase] "password" column not found in students table. Retrying update without password...');
+                delete updateData.password;
+                const retry = await supabase.from('students').update(updateData).eq('id', id);
+                error = retry.error;
+            }
+
             if (error) return res.status(500).json({ success: false, error: error.message });
 
             return res.json({ success: true, message: 'Student updated successfully' });
