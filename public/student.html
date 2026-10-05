@@ -35,91 +35,18 @@
     <main class="flex-grow p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full overflow-y-auto space-y-6">
 
         <!-- Login View -->
-        <div id="login-section" class="max-w-md mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 mt-8 sm:mt-12">
-            <div class="flex items-center space-x-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                    <i class="fa-solid fa-shield-halved text-lg"></i>
-                </div>
+        <div id="login-section" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mt-12">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2">Member Login</h2>
+            <p class="text-slate-500 text-sm mb-6">Enter your registered mobile number to view your membership and receipts.</p>
+
+            <form id="studentLoginForm" class="space-y-4">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-900 leading-tight">Member Login</h2>
-                    <span class="inline-flex items-center text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-200">
-                        <i class="fa-solid fa-bolt mr-1"></i> Free Instant OTP
-                    </span>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Mobile Number</label>
+                    <input type="text" id="login-mobile" required placeholder="e.g. 9876543210" class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
                 </div>
-            </div>
-
-            <p class="text-slate-500 text-xs sm:text-sm mb-5">Enter your registered mobile number to receive a one-time verification code.</p>
-
-            <!-- Error Banner -->
-            <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start space-x-2">
-                <i class="fa-solid fa-circle-exclamation mt-0.5 shrink-0"></i>
-                <span id="error-message-text" class="leading-relaxed"></span>
-            </div>
-
-            <!-- STEP 1: Enter Mobile Number -->
-            <form id="step-mobile-form" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Registered Mobile Number</label>
-                    <div class="relative flex">
-                        <span class="inline-flex items-center px-3 text-xs font-semibold text-slate-500 bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl select-none">
-                            🇮🇳 +91
-                        </span>
-                        <input type="tel" id="login-mobile" required maxlength="10" placeholder="9876543210" class="w-full border border-slate-300 rounded-r-xl px-3 py-2.5 text-sm font-medium tracking-wide focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600">
-                    </div>
-                    <p class="text-[11px] text-slate-400 mt-1.5">Enter the 10-digit number registered with Friends Library.</p>
-                </div>
-
-                <button type="submit" id="btn-send-otp" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition shadow-sm text-sm flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
-                    <span>Send Verification OTP</span>
-                </button>
-            </form>
-
-            <!-- STEP 2: Enter OTP (Hidden initially) -->
-            <form id="step-otp-form" class="hidden space-y-4">
-                <div class="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center justify-between text-xs text-indigo-900">
-                    <div>
-                        <span class="text-slate-500 block text-[10px]">OTP sent to:</span>
-                        <span class="font-bold tracking-wide" id="display-otp-phone">+91 ••••••••••</span>
-                    </div>
-                    <button type="button" onclick="resetToStep1()" class="text-indigo-600 hover:text-indigo-800 font-semibold text-[11px] underline">
-                        Edit
-                    </button>
-                </div>
-
-                <!-- Instant Free / Demo OTP Banner -->
-                <div id="demo-otp-banner" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div>
-                        <span class="font-bold flex items-center"><i class="fa-solid fa-key mr-1.5 text-emerald-600"></i> Free Login OTP:</span>
-                        <span id="demo-otp-code" class="text-base font-extrabold font-mono tracking-widest text-emerald-700 block sm:inline sm:ml-1">------</span>
-                    </div>
-                    <button type="button" onclick="autoFillOtp()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg transition whitespace-nowrap shadow-xs">
-                        Auto-Fill
-                    </button>
-                </div>
-
-                <!-- WhatsApp Option Link -->
-                <div id="wa-otp-container" class="hidden text-center">
-                    <a id="wa-otp-link" href="#" target="_blank" class="inline-flex items-center text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-                        <i class="fa-brands fa-whatsapp text-sm mr-1"></i> Receive / View on WhatsApp
-                    </a>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit OTP</label>
-                    <input type="text" id="login-otp" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="• • • • • •" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-center text-xl font-bold font-mono tracking-[0.4em] focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-slate-50 focus:bg-white transition-all">
-                </div>
-
-                <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
-                    <span id="countdown-timer" class="font-medium">Resend in 30s</span>
-                    <button type="button" id="btn-resend-otp" disabled onclick="resendOtp()" class="text-indigo-600 disabled:text-slate-400 disabled:cursor-not-allowed font-semibold hover:underline">
-                        Resend OTP
-                    </button>
-                </div>
-
-                <button type="submit" id="btn-verify-otp" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition shadow-sm text-sm flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-check text-xs"></i>
-                    <span>Verify & Login</span>
+                <div id="login-error" class="hidden text-red-500 text-xs"></div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg transition shadow-sm text-sm">
+                    View Membership Details
                 </button>
             </form>
         </div>
@@ -210,220 +137,42 @@
         const API_BASE = '/api';
         let currentReceiptsList = [];
 
-        let activeMobile = '';
-        let currentDemoOtp = '';
-        let countdownInterval = null;
-
         const savedMobile = localStorage.getItem('studentMobile');
         if (savedMobile) {
-            fetchStudentProfile(savedMobile);
+            fetchStudentData(savedMobile);
         }
 
-        // Show/Hide Error Banner
-        function showError(msg) {
+        document.getElementById('studentLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const mobileInput = document.getElementById('login-mobile').value.trim();
+            fetchStudentData(mobileInput);
+        });
+
+        async function fetchStudentData(mobile) {
             const errorBox = document.getElementById('login-error');
-            const errorText = document.getElementById('error-message-text');
-            if (msg) {
-                errorText.innerText = msg;
-                errorBox.classList.remove('hidden');
-            } else {
-                errorBox.classList.add('hidden');
-            }
-        }
+            errorBox.classList.add('hidden');
 
-        // Step 1: Send OTP Form Handler
-        document.getElementById('step-mobile-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            showError(null);
-
-            const mobileInput = document.getElementById('login-mobile').value.trim().replace(/\D/g, '');
-            if (mobileInput.length !== 10) {
-                showError("Please enter a valid 10-digit mobile number.");
-                return;
-            }
-
-            const sendBtn = document.getElementById('btn-send-otp');
-            sendBtn.disabled = true;
-            sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Sending OTP...';
-
-            try {
-                const res = await fetch(`${API_BASE}/student/send-otp`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        mobile: mobileInput
-                    })
-                });
-
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    activeMobile = mobileInput;
-                    currentDemoOtp = data.demoOtp || '';
-
-                    // Transition to Step 2
-                    document.getElementById('step-mobile-form').classList.add('hidden');
-                    document.getElementById('step-otp-form').classList.remove('hidden');
-                    document.getElementById('display-otp-phone').innerText = `+91 ${mobileInput.slice(0, 5)} ${mobileInput.slice(5)}`;
-
-                    // Demo / Free OTP Helper Banner
-                    if (data.demoOtp) {
-                        document.getElementById('demo-otp-banner').classList.remove('hidden');
-                        document.getElementById('demo-otp-code').innerText = data.demoOtp;
-                    } else {
-                        document.getElementById('demo-otp-banner').classList.add('hidden');
-                    }
-
-                    // WhatsApp link
-                    if (data.waUrl) {
-                        const waContainer = document.getElementById('wa-otp-container');
-                        const waLink = document.getElementById('wa-otp-link');
-                        waLink.href = data.waUrl;
-                        waContainer.classList.remove('hidden');
-                    }
-
-                    startResendCountdown(30);
-                    document.getElementById('login-otp').value = '';
-                    document.getElementById('login-otp').focus();
-                } else {
-                    showError(data.message || "Could not send OTP. Please try again.");
-                }
-            } catch (err) {
-                console.error("Error sending OTP:", err);
-                showError("Connection error. Could not connect to the library server.");
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane text-xs mr-2"></i> Send Verification OTP';
-            }
-        });
-
-        // Step 2: Verify OTP Form Handler
-        document.getElementById('step-otp-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            showError(null);
-
-            const otpInput = document.getElementById('login-otp').value.trim();
-            if (otpInput.length !== 6) {
-                showError("Please enter the complete 6-digit verification code.");
-                return;
-            }
-
-            const verifyBtn = document.getElementById('btn-verify-otp');
-            verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
-
-            try {
-                const res = await fetch(`${API_BASE}/student/verify-otp`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        mobile: activeMobile,
-                        otp: otpInput
-                    })
-                });
-
-                const data = await res.json();
-                if (res.ok && data.success && data.student) {
-                    localStorage.setItem('studentMobile', data.student.mobile);
-                    renderStudentDashboard(data.student);
-                    fetchStudentReceipts(data.student.id);
-                } else {
-                    showError(data.message || "Invalid OTP code. Please try again.");
-                }
-            } catch (err) {
-                console.error("Error verifying OTP:", err);
-                showError("Verification failed due to connection error.");
-            } finally {
-                verifyBtn.disabled = false;
-                verifyBtn.innerHTML = '<i class="fa-solid fa-check text-xs mr-2"></i> Verify & Login';
-            }
-        });
-
-        function autoFillOtp() {
-            if (currentDemoOtp) {
-                document.getElementById('login-otp').value = currentDemoOtp;
-                document.getElementById('btn-verify-otp').focus();
-            }
-        }
-
-        function resetToStep1() {
-            if (countdownInterval) clearInterval(countdownInterval);
-            document.getElementById('step-otp-form').classList.add('hidden');
-            document.getElementById('step-mobile-form').classList.remove('hidden');
-            document.getElementById('login-otp').value = '';
-            showError(null);
-            document.getElementById('login-mobile').focus();
-        }
-
-        function startResendCountdown(seconds) {
-            if (countdownInterval) clearInterval(countdownInterval);
-            const timerSpan = document.getElementById('countdown-timer');
-            const resendBtn = document.getElementById('btn-resend-otp');
-            resendBtn.disabled = true;
-
-            let remaining = seconds;
-            timerSpan.innerText = `Resend in ${remaining}s`;
-
-            countdownInterval = setInterval(() => {
-                remaining--;
-                if (remaining <= 0) {
-                    clearInterval(countdownInterval);
-                    timerSpan.innerText = "Didn't receive OTP?";
-                    resendBtn.disabled = false;
-                } else {
-                    timerSpan.innerText = `Resend in ${remaining}s`;
-                }
-            }, 1000);
-        }
-
-        async function resendOtp() {
-            if (!activeMobile) return;
-            showError(null);
-            const resendBtn = document.getElementById('btn-resend-otp');
-            resendBtn.disabled = true;
-
-            try {
-                const res = await fetch(`${API_BASE}/student/send-otp`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        mobile: activeMobile
-                    })
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    currentDemoOtp = data.demoOtp || '';
-                    if (data.demoOtp) {
-                        document.getElementById('demo-otp-code').innerText = data.demoOtp;
-                    }
-                    startResendCountdown(30);
-                } else {
-                    showError(data.message || "Failed to resend OTP.");
-                }
-            } catch (err) {
-                showError("Network error while resending OTP.");
-            }
-        }
-
-        async function fetchStudentProfile(mobile) {
             try {
                 const response = await fetch(API_BASE + '/students');
                 if (!response.ok) throw new Error('Network error');
                 const students = await response.json();
-                const student = students.find(s => s.mobile && s.mobile.includes(mobile.slice(-10)));
+
+                const student = students.find(function(s) {
+                    return s.mobile === mobile;
+                });
+
                 if (student) {
+                    localStorage.setItem('studentMobile', student.mobile);
                     renderStudentDashboard(student);
                     fetchStudentReceipts(student.id);
                 } else {
-                    localStorage.removeItem('studentMobile');
+                    errorBox.innerText = "No student found with this mobile number.";
+                    errorBox.classList.remove('hidden');
                 }
-            } catch (err) {
-                console.error("Profile load error:", err);
+            } catch (error) {
+                console.error("Error:", error);
+                errorBox.innerText = "Could not connect to server. Please try again.";
+                errorBox.classList.remove('hidden');
             }
         }
 
@@ -549,8 +298,7 @@
             currentReceiptsList = [];
             document.getElementById('dashboard-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');
-            document.getElementById('login-mobile').value = '';
-            resetToStep1();
+            document.getElementById('studentLoginForm').reset();
         });
     </script>
 </body>
