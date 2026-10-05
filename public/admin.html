@@ -57,21 +57,38 @@
     </header>
 
     <main class="grow p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-5">
-        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-                <div class="flex items-center space-x-3">
-                    <h3 class="text-sm sm:text-base font-bold text-slate-800"><i class="fa-solid fa-chair mr-2"></i>Live Seat Availability Map</h3>
-                    <button id="toggle-seats-btn" onclick="toggleSeatsCollapse()" class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition font-bold text-base select-none border border-slate-200" title="Click to minimize seats (-)">
-                        <span id="seats-toggle-icon">−</span>
-                    </button>
+        <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="toggleSeatsCollapse()">
+                    <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-chair mr-2 text-indigo-600"></i>Live Seat Availability Map
+                    </h3>
+                    <span id="seats-status-badge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Minimised
+                    </span>
                 </div>
-                <div class="flex items-center space-x-4 text-xs font-medium text-slate-600">
-                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-emerald-100 border border-emerald-300 mr-1.5"></span> Available</span>
-                    <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-red-100 border border-red-300 mr-1.5"></span> Occupied</span>
+                
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div id="seat-legend" class="hidden sm:flex items-center space-x-4 text-xs font-medium text-slate-600">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-emerald-100 border border-emerald-300 mr-1.5"></span> Available</span>
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded bg-red-100 border border-red-300 mr-1.5"></span> Occupied</span>
+                    </div>
+
+                    <!-- Dual Segmented Controls: "+" to Expand and "-" if seats are minimised -->
+                    <div class="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-100 text-xs font-semibold shrink-0">
+                        <button type="button" id="btn-seats-expand" onclick="setSeatsCollapse(false)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition text-slate-600 hover:text-indigo-600 cursor-pointer" title="Click to Expand seats (+)">
+                            <span class="font-black text-sm leading-none">+</span>
+                            <span>Expand</span>
+                        </button>
+                        <button type="button" id="btn-seats-minimize" onclick="setSeatsCollapse(true)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md transition bg-indigo-600 text-white shadow-sm cursor-pointer" title="Minimised / Click to Minimise (-)">
+                            <span class="font-black text-sm leading-none">−</span>
+                            <span>Minimise</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div id="seat-grid" class="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5 transition-all duration-200">
+            <div id="seat-grid" class="hidden grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-2.5 mt-4 transition-all duration-200">
                 <!-- Populated dynamically -->
             </div>
         </div>
@@ -368,21 +385,55 @@
             window.location.replace('login.html');
         });
 
-        let isSeatsCollapsed = false;
-        function toggleSeatsCollapse() {
-            isSeatsCollapsed = !isSeatsCollapsed;
+        let isSeatsCollapsed = true; // Default is compressed / minimised
+
+        function setSeatsCollapse(collapse) {
+            isSeatsCollapsed = collapse;
             const grid = document.getElementById('seat-grid');
-            const icon = document.getElementById('seats-toggle-icon');
-            const btn = document.getElementById('toggle-seats-btn');
+            const legend = document.getElementById('seat-legend');
+            const badge = document.getElementById('seats-status-badge');
+            const btnExpand = document.getElementById('btn-seats-expand');
+            const btnMinimize = document.getElementById('btn-seats-minimize');
+
             if (isSeatsCollapsed) {
-                grid.classList.add('hidden');
-                icon.innerText = '+';
-                btn.title = 'Click to expand seats (+)';
+                // MINIMISED (COMPRESSED) STATE
+                if (grid) grid.classList.add('hidden');
+                if (legend) {
+                    legend.classList.add('hidden');
+                    legend.classList.remove('sm:flex');
+                }
+                if (badge) {
+                    badge.innerText = 'Minimised';
+                    badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+                }
+                if (btnMinimize) {
+                    btnMinimize.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition bg-indigo-600 text-white shadow-sm cursor-pointer';
+                }
+                if (btnExpand) {
+                    btnExpand.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition text-slate-600 hover:text-indigo-600 cursor-pointer';
+                }
             } else {
-                grid.classList.remove('hidden');
-                icon.innerText = '−';
-                btn.title = 'Click to minimize seats (-)';
+                // EXPANDED STATE
+                if (grid) grid.classList.remove('hidden');
+                if (legend) {
+                    legend.classList.remove('hidden');
+                    legend.classList.add('sm:flex');
+                }
+                if (badge) {
+                    badge.innerText = 'Expanded';
+                    badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+                }
+                if (btnExpand) {
+                    btnExpand.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition bg-indigo-600 text-white shadow-sm cursor-pointer';
+                }
+                if (btnMinimize) {
+                    btnMinimize.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-md transition text-slate-600 hover:text-indigo-600 cursor-pointer';
+                }
             }
+        }
+
+        function toggleSeatsCollapse() {
+            setSeatsCollapse(!isSeatsCollapsed);
         }
 
         async function fetchData() {
