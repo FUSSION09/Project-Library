@@ -41,6 +41,9 @@ function loadLocalData() {
     try {
         if (fs.existsSync(studentsJsonPath)) {
             localStudents = JSON.parse(fs.readFileSync(studentsJsonPath, 'utf8'));
+            localStudents.forEach(s => {
+                if (!s.password) s.password = '123456';
+            });
         }
         if (fs.existsSync(pastJsonPath)) {
             localPastMembers = JSON.parse(fs.readFileSync(pastJsonPath, 'utf8'));
@@ -121,6 +124,93 @@ app.post('/api/login', async(req, res) => {
         return res.json({ success: true, message: 'Login successful' });
     }
     res.status(401).json({ success: false, message: 'Invalid credentials' });
+});
+
+// Helper to find student by 10-digit mobile phone
+function findStudentByPhone(studentList, phoneInput) {
+    if (!phoneInput) return null;
+    const clean = phoneInput.replace(/\D/g, '').slice(-10);
+    if (!clean) return null;
+    return studentList.find(s => {
+        if (!s.mobile) return false;
+        const sClean = s.mobile.replace(/\D/g, '');
+        return sClean.includes(clean);
+    });
+}
+
+// 1a. Student Login with Password
+app.post('/api/student/login', async (req, res) => {
+    try {
+        const { mobile, password } = req.body;
+        if (!mobile || !password) {
+            return res.status(400).json({ success: false, message: 'Mobile number and password are required.' });
+        }
+
+        const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+        let student = null;
+
+        if (supabase) {
+            const { data, error } = await supabase.from('students').select('*');
+            if (error) return res.status(500).json({ success: false, message: error.message });
+            student = findStudentByPhone(data || [], cleanMobile);
+        } else {
+            student = findStudentByPhone(localStudents, cleanMobile);
+        }
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'This mobile number is not registered with Friends Library.' });
+        }
+
+        const expectedPassword = student.password ? String(student.password).trim() : '123456';
+        if (expectedPassword !== String(password).trim()) {
+            return res.status(401).json({ success: false, message: 'Incorrect password. Please verify or use "Forgot Password".' });
+        }
+
+        res.json({
+            success: true,
+            message: `Welcome, ${student.name}!`,
+            student
+        });
+    } catch (err) {
+        console.error('Student login error:', err);
+        res.status(500).json({ success: false, message: 'Server error during student login.' });
+    }
+});
+
+// 1b. Update Student Password (Admin)
+app.put('/api/students/:id/password', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { password } = req.body;
+
+        if (!password || !password.trim()) {
+            return res.status(400).json({ success: false, message: 'Password cannot be empty.' });
+        }
+
+        const newPassword = password.trim();
+
+        if (supabase) {
+            const { error } = await supabase
+                .from('students')
+                .update({ password: newPassword })
+                .eq('id', id);
+
+            if (error) return res.status(500).json({ success: false, message: error.message });
+            return res.json({ success: true, message: 'Password updated successfully!', password: newPassword });
+        }
+
+        const student = localStudents.find(s => String(s.id) === String(id));
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found.' });
+        }
+
+        student.password = newPassword;
+        saveLocalData();
+        res.json({ success: true, message: 'Password updated successfully!', password: newPassword });
+    } catch (err) {
+        console.error('Password update error:', err);
+        res.status(500).json({ success: false, message: 'Server error updating password.' });
+    }
 });
 
 // 2. Fetch Active Students
@@ -311,7 +401,8 @@ app.post('/api/approve-registration/:id', async(req, res) => {
                 mode: student.mode,
                 lastPaid: student.lastPaid,
                 dueDate: student.dueDate,
-                remarks: student.remarks
+                remarks: student.remarks,
+                password: student.password || '123456'
             }])
             .select();
 
@@ -340,6 +431,7 @@ app.post('/api/approve-registration/:id', async(req, res) => {
 
     const student = localPending.splice(index, 1)[0];
     student.id = localStudents.length > 0 ? Math.max(...localStudents.map(s => s.id || 0)) + 1 : 1;
+    student.password = student.password || '123456';
     localStudents.unshift(student);
     saveLocalData();
 
@@ -374,8 +466,9 @@ app.delete('/api/pending-registrations/:id', async(req, res) => {
 
 // 11. Add Student (Direct Admin)
 app.post('/api/students', upload.single('photo'), async(req, res) => {
-    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks } = req.body;
+    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
     const photoUrl = await uploadToSupabase(req.file);
+    const studentPassword = (password && password.trim()) ? password.trim() : '123456';
 
     if (supabase) {
         const { data, error } = await supabase.from('students').insert([{
@@ -392,7 +485,8 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
             mode,
             lastPaid,
             dueDate,
-            remarks: remarks || ''
+            remarks: remarks || '',
+            password: studentPassword
         }]).select();
 
         if (error) return res.status(500).json({ error: error.message });
@@ -430,7 +524,8 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
         mode: mode || 'Cash',
         lastPaid: lastPaid || '',
         dueDate: dueDate || '',
-        remarks: remarks || ''
+        remarks: remarks || '',
+        password: studentPassword
     };
 
     localStudents.unshift(newStudent);
@@ -455,7 +550,7 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
 // 12. Update Student
 app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
     const id = req.params.id;
-    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks } = req.body;
+    const { seatNo, name, shift, mobile, aadhar, joiningDate, plan, cardNo, fee, mode, lastPaid, dueDate, remarks, password } = req.body;
 
     const updatePayload = {
         seatNo,
@@ -472,6 +567,10 @@ app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
         dueDate,
         remarks
     };
+
+    if (password && password.trim()) {
+        updatePayload.password = password.trim();
+    }
 
     if (supabase) {
         if (req.file) {
