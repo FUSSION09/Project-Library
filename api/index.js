@@ -106,24 +106,29 @@ async function uploadToSupabase(file) {
 // 1. Admin Login
 app.post('/api/login', async(req, res) => {
     const { username, password } = req.body;
+    const trimmedUser = (username || '').trim();
+    const trimmedPass = (password || '').trim();
+
+    // Primary Admin Credentials
+    const isMasterAdmin = (trimmedUser === 'admin@friendslibrary.com' && trimmedPass === 'Tarun@2604');
+
+    if (isMasterAdmin) {
+        return res.json({ success: true, message: 'Login successful' });
+    }
+
     if (supabase) {
         const { data, error } = await supabase
             .from('admins')
             .select('*')
-            .eq('username', username)
-            .eq('password', password);
+            .eq('username', trimmedUser)
+            .eq('password', trimmedPass);
 
-        if (error || !data || data.length === 0) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        if (!error && data && data.length > 0) {
+            return res.json({ success: true, message: 'Login successful' });
         }
-        return res.json({ success: true, message: 'Login successful' });
     }
 
-    // Local admin authentication fallback
-    if (username === 'admin' && password === 'password123') {
-        return res.json({ success: true, message: 'Login successful' });
-    }
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+    return res.status(401).json({ success: false, message: 'Invalid credentials' });
 });
 
 // Helper to find student by 10-digit mobile phone

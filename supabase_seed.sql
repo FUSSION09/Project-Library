@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS admins (
 );
 
 INSERT INTO admins (username, password)
-VALUES ('admin', 'password123')
+VALUES ('admin@friendslibrary.com', 'Tarun@2604')
 ON CONFLICT (username) DO UPDATE SET password = EXCLUDED.password;
 
 -- 2. Create Students Table

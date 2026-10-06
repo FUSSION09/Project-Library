@@ -21,9 +21,9 @@ async function seed() {
     const students = JSON.parse(fs.readFileSync(studentsPath, 'utf8'));
 
     // 1. Ensure admin exists
-    const { error: adminErr } = await supabase.from('admins').upsert([{ username: 'admin', password: 'password123' }]);
+    const { error: adminErr } = await supabase.from('admins').upsert([{ username: 'admin@friendslibrary.com', password: 'Tarun@2604' }]);
     if (adminErr) console.warn('Admin upsert notice:', adminErr.message);
-    else console.log('Admin account ensured (admin / password123).');
+    else console.log('Admin account ensured (admin@friendslibrary.com / Tarun@2604).');
 
     // 2. Insert students
     console.log(`Inserting ${students.length} students into Supabase...`);
