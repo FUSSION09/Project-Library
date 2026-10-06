@@ -665,25 +665,6 @@
     "password": "123456"
   },
   {
-    "name": "Shri ram hardware",
-    "mobile": "",
-    "shift": "6 Hours",
-    "aadhar": "",
-    "seatNo": "Pending",
-    "cardNo": "Yes",
-    "plan": "Monthly",
-    "fee": 800,
-    "mode": "Cash",
-    "lastPaid": "2026-05-02",
-    "joiningDate": "2026-05-02",
-    "dueDate": "2026-06-01",
-    "dueStatus": "Due",
-    "remarks": "",
-    "id": 36,
-    "numericId": 36,
-    "password": "123456"
-  },
-  {
     "name": "Vidhushi Yadav",
     "mobile": "8059163447",
     "shift": "6 Hours",

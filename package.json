@@ -8,7 +8,13 @@
     "dev": "node server.js",
     "seed": "node scripts/seed_supabase.js",
     "generate-data": "node scripts/generate_data_files.js",
-    "test": "node scripts/test_api.js"
+    "test": "node --test tests/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/*.test.js",
+    "test:watch": "node --test --watch tests/*.test.js",
+    "test:api": "node --test tests/auth.test.js tests/students.test.js tests/registration.test.js tests/seats_and_receipts.test.js tests/bulk_upload.test.js",
+    "test:data": "node --test tests/data_integrity.test.js",
+    "test:smoke": "node --test tests/frontend_smoke.test.js tests/static_and_security.test.js",
+    "test:legacy": "node scripts/test_api.js"
   },
   "keywords": [],
   "author": "",
