@@ -32,6 +32,7 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
 const getDataDir = () => process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, '..', 'data');
 const getStudentsJsonPath = () => path.join(getDataDir(), 'students.json');
 const getPastJsonPath = () => path.join(getDataDir(), 'past_members.json');
+const getReceiptsJsonPath = () => path.join(getDataDir(), 'receipts.json');
 const getUploadDir = () => process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(__dirname, '..', 'public', 'uploads');
 
 let localStudents = [];
@@ -39,35 +40,67 @@ let localPastMembers = [];
 let localPending = [];
 let localReceipts = [];
 
+// Helper function to extract password from record or remarks fallback
+function extractStudentPassword(student) {
+    if (!student) return '123456';
+    if (student.password && String(student.password).trim()) {
+        return String(student.password).trim();
+    }
+    if (student.remarks) {
+        const match = String(student.remarks).match(/\[PWD:([^\]]+)\]/);
+        if (match && match[1]) return match[1].trim();
+    }
+    return '123456';
+}
+
+// Clean remarks string from internal [PWD:...] marker
+function cleanStudentRemarks(remarks) {
+    if (!remarks) return '';
+    return String(remarks).replace(/\[PWD:[^\]]+\]\s*/g, '').trim();
+}
+
 function loadLocalData() {
     try {
         const studentsJsonPath = getStudentsJsonPath();
         const pastJsonPath = getPastJsonPath();
+        const receiptsJsonPath = getReceiptsJsonPath();
+
         if (fs.existsSync(studentsJsonPath)) {
             localStudents = JSON.parse(fs.readFileSync(studentsJsonPath, 'utf8'));
             localStudents.forEach(s => {
-                if (!s.password) s.password = '123456';
+                s.password = extractStudentPassword(s);
             });
         } else {
             localStudents = [];
         }
+
         if (fs.existsSync(pastJsonPath)) {
             localPastMembers = JSON.parse(fs.readFileSync(pastJsonPath, 'utf8'));
         } else {
             localPastMembers = [];
         }
+
         localPending = [];
-        localReceipts = localStudents.filter(s => s.lastPaid && s.fee).map((s, idx) => ({
-            id: idx + 1,
-            student_id: s.id,
-            receipt_no: `REC-${String(100000 + idx)}`,
-            student_name: s.name,
-            seat_no: s.seatNo,
-            fee: Number(s.fee),
-            mode: s.mode || 'Cash',
-            plan: s.plan || 'Monthly',
-            payment_date: s.lastPaid
-        }));
+
+        if (fs.existsSync(receiptsJsonPath)) {
+            localReceipts = JSON.parse(fs.readFileSync(receiptsJsonPath, 'utf8'));
+        } else {
+            localReceipts = localStudents.filter(s => s.lastPaid && s.fee).map((s, idx) => ({
+                id: idx + 1,
+                student_id: s.id,
+                receipt_no: `FL-REC-${String(100000 + idx)}`,
+                student_name: s.name,
+                mobile: s.mobile || '',
+                seat_no: s.seatNo,
+                shift: s.shift || '12 Hours',
+                fee: Number(s.fee),
+                mode: s.mode || 'Cash',
+                plan: s.plan || 'Monthly',
+                payment_date: s.lastPaid,
+                due_date: s.dueDate || ''
+            }));
+            saveLocalReceipts();
+        }
     } catch (err) {
         console.error('Error loading local dataset:', err);
     }
@@ -83,6 +116,18 @@ function saveLocalData() {
         fs.writeFileSync(getPastJsonPath(), JSON.stringify(localPastMembers, null, 2), 'utf8');
     } catch (err) {
         console.error('Error writing to local dataset:', err);
+    }
+}
+
+function saveLocalReceipts() {
+    try {
+        const dir = getDataDir();
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(getReceiptsJsonPath(), JSON.stringify(localReceipts, null, 2), 'utf8');
+    } catch (err) {
+        console.error('Error writing to receipts dataset:', err);
     }
 }
 
@@ -179,10 +224,13 @@ app.post('/api/student/login', async (req, res) => {
             return res.status(404).json({ success: false, message: 'This mobile number is not registered with Friends Library.' });
         }
 
-        const expectedPassword = student.password ? String(student.password).trim() : '123456';
+        const expectedPassword = extractStudentPassword(student);
         if (expectedPassword !== String(password).trim()) {
             return res.status(401).json({ success: false, message: 'Incorrect password. Please verify or use "Forgot Password".' });
         }
+
+        student.password = expectedPassword;
+        student.remarks = cleanStudentRemarks(student.remarks);
 
         res.json({
             success: true,
@@ -214,13 +262,28 @@ app.put('/api/students/:id/password', async (req, res) => {
                 .eq('id', id);
 
             if (error) {
-                if (error.message && error.message.includes("'password' column")) {
-                    return res.status(400).json({
-                        success: false,
-                        message: "The 'password' column has not been added to your Supabase 'students' table yet. Run: ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456'; in Supabase SQL Editor."
-                    });
+                console.warn('[Supabase] "password" column update failed, applying remarks fallback:', error.message);
+                const { data: sData, error: sErr } = await supabase
+                    .from('students')
+                    .select('remarks')
+                    .eq('id', id)
+                    .single();
+
+                if (sErr || !sData) {
+                    return res.status(404).json({ success: false, message: 'Student not found in database.' });
                 }
-                return res.status(500).json({ success: false, message: error.message });
+
+                const cleanedRemarks = cleanStudentRemarks(sData.remarks);
+                const updatedRemarks = cleanedRemarks ? `${cleanedRemarks} [PWD:${newPassword}]` : `[PWD:${newPassword}]`;
+
+                const { error: remErr } = await supabase
+                    .from('students')
+                    .update({ remarks: updatedRemarks })
+                    .eq('id', id);
+
+                if (remErr) {
+                    return res.status(500).json({ success: false, message: remErr.message });
+                }
             }
             return res.json({ success: true, message: 'Password updated successfully!', password: newPassword });
         }
@@ -239,6 +302,81 @@ app.put('/api/students/:id/password', async (req, res) => {
     }
 });
 
+// 1c. Student Change Password (Self-service from Student Portal)
+app.post('/api/student/change-password', async (req, res) => {
+    try {
+        const { mobile, currentPassword, newPassword } = req.body || {};
+
+        if (!mobile || !currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'Mobile number, current password, and new password are required.'
+            });
+        }
+
+        const trimmedNew = String(newPassword).trim();
+        if (trimmedNew.length < 4) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 4 characters long.'
+            });
+        }
+
+        const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+        let student = null;
+
+        if (supabase) {
+            const { data, error } = await supabase.from('students').select('*');
+            if (error) return res.status(500).json({ success: false, message: error.message });
+            student = findStudentByPhone(data || [], cleanMobile);
+        } else {
+            student = findStudentByPhone(localStudents, cleanMobile);
+        }
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student not found with this mobile number.' });
+        }
+
+        const existingPassword = extractStudentPassword(student);
+        if (existingPassword !== String(currentPassword).trim()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect. Please check and try again.'
+            });
+        }
+
+        if (supabase) {
+            const { error } = await supabase
+                .from('students')
+                .update({ password: trimmedNew })
+                .eq('id', student.id);
+
+            if (error) {
+                console.warn('[Supabase] "password" column update failed during self-service, applying remarks fallback:', error.message);
+                const cleanedRemarks = cleanStudentRemarks(student.remarks);
+                const updatedRemarks = cleanedRemarks ? `${cleanedRemarks} [PWD:${trimmedNew}]` : `[PWD:${trimmedNew}]`;
+
+                const { error: remErr } = await supabase
+                    .from('students')
+                    .update({ remarks: updatedRemarks })
+                    .eq('id', student.id);
+
+                if (remErr) {
+                    return res.status(500).json({ success: false, message: remErr.message });
+                }
+            }
+            return res.json({ success: true, message: 'Password changed successfully! Please use your new password next time.' });
+        }
+
+        student.password = trimmedNew;
+        saveLocalData();
+        return res.json({ success: true, message: 'Password changed successfully! Please use your new password next time.' });
+    } catch (err) {
+        console.error('Student change password error:', err);
+        res.status(500).json({ success: false, message: 'Server error while updating password.' });
+    }
+});
+
 // 2. Fetch Active Students
 app.get('/api/students', async(req, res) => {
     if (supabase) {
@@ -248,9 +386,16 @@ app.get('/api/students', async(req, res) => {
             .order('id', { ascending: false });
 
         if (error) return res.status(500).json({ error: error.message });
+        (data || []).forEach(s => {
+            s.password = extractStudentPassword(s);
+            s.remarks = cleanStudentRemarks(s.remarks);
+        });
         return res.json(data);
     }
 
+    localStudents.forEach(s => {
+        s.password = extractStudentPassword(s);
+    });
     res.json(localStudents);
 });
 
@@ -263,6 +408,9 @@ app.get('/api/past-members', async(req, res) => {
             .order('deleted_at', { ascending: false });
 
         if (error) return res.status(500).json({ error: error.message });
+        (data || []).forEach(s => {
+            s.remarks = cleanStudentRemarks(s.remarks);
+        });
         return res.json(data);
     }
 
@@ -286,9 +434,8 @@ app.get('/api/receipts', async(req, res) => {
 
 // 5. Save Receipt
 app.post('/api/receipts', async(req, res) => {
-    const { student_id, receipt_no, student_name, seat_no, fee, mode, plan, payment_date } = req.body;
-    if (supabase) {
-        const { error } = await supabase.from('receipts').insert([{
+    try {
+        const {
             student_id,
             receipt_no,
             student_name,
@@ -296,26 +443,64 @@ app.post('/api/receipts', async(req, res) => {
             fee,
             mode,
             plan,
-            payment_date
-        }]);
+            payment_date,
+            mobile,
+            shift,
+            due_date
+        } = req.body || {};
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.json({ success: true, message: 'Receipt saved successfully' });
+        const parsedFee = (fee !== undefined && !isNaN(Number(fee))) ? Number(fee) : 0;
+        const finalReceiptNo = receipt_no || `FL-REC-${Date.now().toString().slice(-6)}`;
+        const finalDate = payment_date || new Date().toISOString().split('T')[0];
+
+        const receiptRecord = {
+            student_id,
+            receipt_no: finalReceiptNo,
+            student_name: student_name || '',
+            seat_no: seat_no || '',
+            fee: parsedFee,
+            mode: mode || 'Cash',
+            plan: plan || 'Monthly',
+            payment_date: finalDate,
+            mobile: mobile || '',
+            shift: shift || '',
+            due_date: due_date || ''
+        };
+
+        if (supabase) {
+            const basePayload = {
+                student_id,
+                receipt_no: finalReceiptNo,
+                student_name: receiptRecord.student_name,
+                seat_no: receiptRecord.seat_no,
+                fee: parsedFee,
+                mode: receiptRecord.mode,
+                plan: receiptRecord.plan,
+                payment_date: finalDate
+            };
+
+            let { data, error } = await supabase.from('receipts').insert([receiptRecord]).select();
+            if (error) {
+                // If extra columns aren't defined in Supabase receipts table, insert base payload
+                const retry = await supabase.from('receipts').insert([basePayload]).select();
+                if (retry.error) return res.status(500).json({ error: retry.error.message });
+                data = retry.data;
+            }
+
+            return res.json({ success: true, message: 'Receipt saved successfully', receipt: (data && data[0]) || basePayload });
+        }
+
+        const newReceipt = {
+            id: localReceipts.length + 1,
+            ...receiptRecord
+        };
+        localReceipts.unshift(newReceipt);
+        saveLocalReceipts();
+        res.json({ success: true, message: 'Receipt saved successfully', receipt: newReceipt });
+    } catch (err) {
+        console.error('Error saving receipt:', err);
+        res.status(500).json({ success: false, message: 'Server error saving receipt' });
     }
-
-    const newReceipt = {
-        id: localReceipts.length + 1,
-        student_id,
-        receipt_no,
-        student_name,
-        seat_no,
-        fee: Number(fee),
-        mode,
-        plan,
-        payment_date
-    };
-    localReceipts.unshift(newReceipt);
-    res.json({ success: true, message: 'Receipt saved successfully' });
 });
 
 // 6. Live Seat Shift Status
@@ -460,7 +645,12 @@ app.post('/api/approve-registration/:id', async(req, res) => {
             .select();
 
         if (insertError && insertError.message && insertError.message.includes("'password' column")) {
+            const pwdToSave = approvePayload.password;
             delete approvePayload.password;
+            if (pwdToSave) {
+                const cleanedRem = cleanStudentRemarks(approvePayload.remarks);
+                approvePayload.remarks = cleanedRem ? `${cleanedRem} [PWD:${pwdToSave}]` : `[PWD:${pwdToSave}]`;
+            }
             const retry = await supabase.from('students').insert([approvePayload]).select();
             insertedStudent = retry.data;
             insertError = retry.error;
@@ -576,8 +766,12 @@ app.post('/api/students', upload.single('photo'), async(req, res) => {
             let { data, error } = await supabase.from('students').insert([studentPayload]).select();
 
             if (error && error.message && error.message.includes("'password' column")) {
-                console.warn('[Supabase] "password" column not found in students table. Retrying insert without password...');
+                console.warn('[Supabase] "password" column not found in students table. Retrying insert with remarks fallback...');
                 delete studentPayload.password;
+                if (studentPassword) {
+                    const cleanedRem = cleanStudentRemarks(studentPayload.remarks);
+                    studentPayload.remarks = cleanedRem ? `${cleanedRem} [PWD:${studentPassword}]` : `[PWD:${studentPassword}]`;
+                }
                 const retry = await supabase.from('students').insert([studentPayload]).select();
                 data = retry.data;
                 error = retry.error;
@@ -684,8 +878,14 @@ app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
             let { error } = await supabase.from('students').update(updateData).eq('id', id);
 
             if (error && error.message && error.message.includes("'password' column")) {
-                console.warn('[Supabase] "password" column not found in students table. Retrying update without password...');
+                console.warn('[Supabase] "password" column not found in students table. Retrying update with remarks fallback...');
+                const passToSave = updateData.password;
                 delete updateData.password;
+                if (passToSave) {
+                    const existingRem = updateData.remarks !== undefined ? updateData.remarks : '';
+                    const cleanedRem = cleanStudentRemarks(existingRem);
+                    updateData.remarks = cleanedRem ? `${cleanedRem} [PWD:${passToSave}]` : `[PWD:${passToSave}]`;
+                }
                 const retry = await supabase.from('students').update(updateData).eq('id', id);
                 error = retry.error;
             }

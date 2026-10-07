@@ -175,4 +175,103 @@ describe('Authentication API Suite', () => {
             assert.strictEqual(resMissingMobile.status, 400);
         });
     });
+
+    describe('Student Self-Service Change Password (/api/student/change-password)', () => {
+        it('should change password successfully with valid current password and allow login with new password', async () => {
+            const targetStudent = initialFixtureStudents[0];
+            const newPassword = 'SecureStudentPass#99';
+
+            const res = await apiRequest('/api/student/change-password', {
+                method: 'POST',
+                body: {
+                    mobile: targetStudent.mobile,
+                    currentPassword: targetStudent.password,
+                    newPassword: newPassword
+                }
+            });
+
+            assert.strictEqual(res.status, 200);
+            assert.strictEqual(res.body.success, true);
+            assert.match(res.body.message, /Password changed successfully/i);
+
+            // Verify login with old password fails
+            const failedLogin = await apiRequest('/api/student/login', {
+                method: 'POST',
+                body: {
+                    mobile: targetStudent.mobile,
+                    password: targetStudent.password
+                }
+            });
+            assert.strictEqual(failedLogin.status, 401);
+
+            // Verify login with new password succeeds
+            const successLogin = await apiRequest('/api/student/login', {
+                method: 'POST',
+                body: {
+                    mobile: targetStudent.mobile,
+                    password: newPassword
+                }
+            });
+            assert.strictEqual(successLogin.status, 200);
+            assert.strictEqual(successLogin.body.success, true);
+            assert.strictEqual(successLogin.body.student.id, targetStudent.id);
+        });
+
+        it('should reject password change when current password is incorrect', async () => {
+            const targetStudent = initialFixtureStudents[1];
+            const res = await apiRequest('/api/student/change-password', {
+                method: 'POST',
+                body: {
+                    mobile: targetStudent.mobile,
+                    currentPassword: 'WrongPassword999',
+                    newPassword: 'BrandNewPass123'
+                }
+            });
+
+            assert.strictEqual(res.status, 401);
+            assert.strictEqual(res.body.success, false);
+            assert.match(res.body.message, /Current password is incorrect/i);
+        });
+
+        it('should reject password change when new password is too short', async () => {
+            const targetStudent = initialFixtureStudents[1];
+            const res = await apiRequest('/api/student/change-password', {
+                method: 'POST',
+                body: {
+                    mobile: targetStudent.mobile,
+                    currentPassword: '123456',
+                    newPassword: '12'
+                }
+            });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+            assert.match(res.body.message, /at least 4 characters/i);
+        });
+
+        it('should return 400 when missing required fields', async () => {
+            const res = await apiRequest('/api/student/change-password', {
+                method: 'POST',
+                body: { mobile: '9876543210', newPassword: 'Pass' }
+            });
+
+            assert.strictEqual(res.status, 400);
+            assert.strictEqual(res.body.success, false);
+        });
+
+        it('should return 404 when student is not found', async () => {
+            const res = await apiRequest('/api/student/change-password', {
+                method: 'POST',
+                body: {
+                    mobile: '9999999999',
+                    currentPassword: '123456',
+                    newPassword: 'NewPass#123'
+                }
+            });
+
+            assert.strictEqual(res.status, 404);
+            assert.strictEqual(res.body.success, false);
+        });
+    });
 });
+

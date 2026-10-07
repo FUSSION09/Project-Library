@@ -30,8 +30,12 @@ CREATE TABLE IF NOT EXISTS students (
     mode TEXT,
     "lastPaid" TEXT,
     "dueDate" TEXT,
-    remarks TEXT
+    remarks TEXT,
+    password TEXT DEFAULT '123456'
 );
+
+-- Ensure password column exists on existing installations
+ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456';
 
 -- 3. Create Past Members Table
 CREATE TABLE IF NOT EXISTS past_members (
@@ -50,8 +54,11 @@ CREATE TABLE IF NOT EXISTS past_members (
     "lastPaid" TEXT,
     "dueDate" TEXT,
     remarks TEXT,
+    password TEXT DEFAULT '123456',
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE past_members ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456';
 
 -- 4. Create Pending Registrations Table
 CREATE TABLE IF NOT EXISTS pending_registrations (
@@ -70,8 +77,11 @@ CREATE TABLE IF NOT EXISTS pending_registrations (
     "lastPaid" TEXT,
     "dueDate" TEXT,
     remarks TEXT,
+    password TEXT DEFAULT '123456',
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE pending_registrations ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456';
 
 -- 5. Create Receipts Table
 CREATE TABLE IF NOT EXISTS receipts (
@@ -79,13 +89,20 @@ CREATE TABLE IF NOT EXISTS receipts (
     student_id BIGINT,
     receipt_no TEXT,
     student_name TEXT,
+    mobile TEXT,
     seat_no TEXT,
+    shift TEXT,
     fee NUMERIC,
     mode TEXT,
     plan TEXT,
     payment_date TEXT,
+    due_date TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS mobile TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS shift TEXT;
+ALTER TABLE receipts ADD COLUMN IF NOT EXISTS due_date TEXT;
 
 -- 6. Insert All 97 Students
 INSERT INTO students (id, "seatNo", name, shift, mobile, aadhar, "joiningDate", plan, "cardNo", fee, mode, "lastPaid", "dueDate", remarks)
