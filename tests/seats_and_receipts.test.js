@@ -82,6 +82,32 @@ describe('Seats, Receipts, and Past Members API Suite', () => {
             assert.strictEqual(found.fee, 1500);
             assert.strictEqual(found.student_name, 'Test Student One');
         });
+
+        it('should filter receipts by student_id and mobile query parameters', async () => {
+            const res = await apiRequest(`/api/receipts?student_id=${initialFixtureStudents[0].id}`);
+            assert.strictEqual(res.status, 200);
+            assert.ok(Array.isArray(res.body));
+            res.body.forEach(r => {
+                assert.strictEqual(String(r.student_id), String(initialFixtureStudents[0].id));
+            });
+        });
+
+        it('should return current receipt for student via GET /api/students/:id/receipt with updated fee', async () => {
+            // First update student's fee to 1750
+            const updateRes = await apiRequest(`/api/students/${initialFixtureStudents[0].id}`, {
+                method: 'PUT',
+                body: { fee: 1750 }
+            });
+            assert.strictEqual(updateRes.status, 200);
+
+            // Fetch latest receipt
+            const receiptRes = await apiRequest(`/api/students/${initialFixtureStudents[0].id}/receipt`);
+            assert.strictEqual(receiptRes.status, 200);
+            assert.strictEqual(receiptRes.body.success, true);
+            assert.ok(receiptRes.body.receipt);
+            assert.strictEqual(receiptRes.body.receipt.fee, 1750);
+            assert.strictEqual(receiptRes.body.receipt.student_name, initialFixtureStudents[0].name);
+        });
     });
 
     describe('Past Members API (/api/past-members)', () => {

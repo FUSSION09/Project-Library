@@ -419,17 +419,88 @@ app.get('/api/past-members', async(req, res) => {
 
 // 4. Fetch Receipts
 app.get('/api/receipts', async(req, res) => {
-    if (supabase) {
-        const { data, error } = await supabase
-            .from('receipts')
-            .select('*')
-            .order('id', { ascending: false });
+    try {
+        const { student_id, mobile } = req.query || {};
 
-        if (error) return res.status(500).json({ error: error.message });
-        return res.json(data);
+        let receipts = [];
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('receipts')
+                .select('*')
+                .order('id', { ascending: false });
+
+            if (error) return res.status(500).json({ error: error.message });
+            receipts = data || [];
+        } else {
+            receipts = localReceipts || [];
+        }
+
+        if (student_id || mobile) {
+            const cleanMobile = mobile ? String(mobile).replace(/\D/g, '').slice(-10) : null;
+            receipts = receipts.filter(r => {
+                if (student_id && String(r.student_id) === String(student_id)) return true;
+                if (cleanMobile && r.mobile && String(r.mobile).replace(/\D/g, '').includes(cleanMobile)) return true;
+                return false;
+            });
+        }
+
+        res.json(receipts);
+    } catch (err) {
+        console.error('Error fetching receipts:', err);
+        res.status(500).json({ error: 'Server error fetching receipts' });
     }
+});
 
-    res.json(localReceipts);
+// 4b. Fetch Current / Latest Student Receipt by Student ID
+app.get('/api/students/:id/receipt', async(req, res) => {
+    try {
+        const id = req.params.id;
+        let student = null;
+        if (supabase) {
+            const { data, error } = await supabase.from('students').select('*').eq('id', id).single();
+            if (!error && data) student = data;
+        } else {
+            student = localStudents.find(s => String(s.id) === String(id) || String(s.numericId) === String(id));
+        }
+
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Student record not found.' });
+        }
+
+        let receipts = [];
+        if (supabase) {
+            const { data } = await supabase.from('receipts').select('*').eq('student_id', id).order('id', { ascending: false });
+            receipts = data || [];
+        } else {
+            receipts = (localReceipts || []).filter(r => String(r.student_id) === String(id));
+        }
+
+        const feeVal = Number(student.fee) || 0;
+        let latestReceipt = receipts.length > 0 ? receipts[0] : null;
+
+        // If no receipt exists or latest fee doesn't match current updated fee, create/return current active receipt
+        if (!latestReceipt || Number(latestReceipt.fee) !== feeVal) {
+            const receiptNo = `FL-REC-${student.seatNo || 'GEN'}-${Date.now().toString().slice(-6)}`;
+            latestReceipt = {
+                student_id: student.id,
+                receipt_no: receiptNo,
+                student_name: student.name,
+                seat_no: student.seatNo || 'Unassigned',
+                fee: feeVal,
+                mode: student.mode || 'Cash',
+                plan: student.plan || 'Monthly',
+                payment_date: student.lastPaid || new Date().toISOString().split('T')[0],
+                mobile: student.mobile || '',
+                shift: student.shift || '12 Hours',
+                due_date: student.dueDate || ''
+            };
+        }
+
+        res.json({ success: true, receipt: latestReceipt });
+    } catch (err) {
+        console.error('Error getting student receipt:', err);
+        res.status(500).json({ success: false, message: 'Server error retrieving receipt.' });
+    }
 });
 
 // 5. Save Receipt
@@ -892,6 +963,47 @@ app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
 
             if (error) return res.status(500).json({ success: false, error: error.message });
 
+            // If fee or payment info was updated, record receipt with updated fee
+            if (updatePayload.fee !== undefined || updatePayload.lastPaid !== undefined || updatePayload.plan !== undefined) {
+                try {
+                    const { data: refreshedStudentList } = await supabase.from('students').select('*').eq('id', id);
+                    const s = (refreshedStudentList && refreshedStudentList[0]) || { id, ...updatePayload };
+                    const finalFee = (updatePayload.fee !== undefined) ? Number(updatePayload.fee) : Number(s.fee || 0);
+                    const finalReceiptNo = `FL-REC-${(s.seatNo || 'GEN')}-${Date.now().toString().slice(-6)}`;
+                    const finalPaymentDate = s.lastPaid || new Date().toISOString().split('T')[0];
+
+                    const receiptRecord = {
+                        student_id: s.id,
+                        receipt_no: finalReceiptNo,
+                        student_name: s.name || '',
+                        seat_no: s.seatNo || '',
+                        fee: finalFee,
+                        mode: s.mode || 'Cash',
+                        plan: s.plan || 'Monthly',
+                        payment_date: finalPaymentDate,
+                        mobile: s.mobile || '',
+                        shift: s.shift || '',
+                        due_date: s.dueDate || ''
+                    };
+
+                    let { error: rcptErr } = await supabase.from('receipts').insert([receiptRecord]);
+                    if (rcptErr) {
+                        await supabase.from('receipts').insert([{
+                            student_id: s.id,
+                            receipt_no: finalReceiptNo,
+                            student_name: s.name || '',
+                            seat_no: s.seatNo || '',
+                            fee: finalFee,
+                            mode: s.mode || 'Cash',
+                            plan: s.plan || 'Monthly',
+                            payment_date: finalPaymentDate
+                        }]);
+                    }
+                } catch (rErr) {
+                    console.warn('Could not auto-insert receipt during student update:', rErr);
+                }
+            }
+
             return res.json({ success: true, message: 'Student updated successfully' });
         }
 
@@ -900,6 +1012,31 @@ app.put('/api/students/:id', upload.single('photo'), async(req, res) => {
 
         Object.assign(student, updatePayload);
         saveLocalData();
+
+        // If fee or payment info was updated, record receipt with updated fee
+        if (updatePayload.fee !== undefined || updatePayload.lastPaid !== undefined || updatePayload.plan !== undefined) {
+            const finalFee = Number(student.fee) || 0;
+            const finalReceiptNo = `FL-REC-${(student.seatNo || 'GEN')}-${Date.now().toString().slice(-6)}`;
+            const finalPaymentDate = student.lastPaid || new Date().toISOString().split('T')[0];
+
+            const receiptRecord = {
+                id: localReceipts.length + 1,
+                student_id: student.id,
+                receipt_no: finalReceiptNo,
+                student_name: student.name || '',
+                seat_no: student.seatNo || '',
+                fee: finalFee,
+                mode: student.mode || 'Cash',
+                plan: student.plan || 'Monthly',
+                payment_date: finalPaymentDate,
+                mobile: student.mobile || '',
+                shift: student.shift || '',
+                due_date: student.dueDate || ''
+            };
+
+            localReceipts.unshift(receiptRecord);
+            saveLocalReceipts();
+        }
 
         res.json({ success: true, message: 'Student updated successfully', student });
     } catch (err) {

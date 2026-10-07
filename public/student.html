@@ -11,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -271,7 +272,10 @@
                         <h3 class="text-sm font-bold text-slate-800">Fee Payment Receipt</h3>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button type="button" onclick="triggerReceiptPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                        <button type="button" id="btn-download-receipt" onclick="downloadReceiptImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                            <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Download (PNG)
+                        </button>
+                        <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
                             <i class="fa-solid fa-print mr-1.5"></i> Print / PDF
                         </button>
                         <button type="button" id="btn-wa-receipt" onclick="shareReceiptWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
@@ -402,11 +406,17 @@
                 </div>
 
                 <!-- Modal Footer (Non-printable) -->
-                <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end space-x-2 no-print">
-                    <button type="button" onclick="closeReceiptModal()" class="px-4 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800">Close</button>
-                    <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
-                        <i class="fa-solid fa-print mr-1.5"></i> Print Receipt
-                    </button>
+                <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center no-print">
+                    <p class="text-[11px] text-slate-500"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Official Verified Payment Slip</p>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" onclick="closeReceiptModal()" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800">Close</button>
+                        <button type="button" onclick="downloadReceiptImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                            <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Download (PNG)
+                        </button>
+                        <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                            <i class="fa-solid fa-print mr-1.5"></i> Print Receipt
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -423,7 +433,10 @@
                         <span id="student-status-badge" class="inline-block mt-3 px-3 py-1 rounded-full text-xs font-bold uppercase">--</span>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                <div class="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                    <button type="button" onclick="downloadCurrentReceipt()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center transition shadow-sm">
+                        <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Download Latest Receipt
+                    </button>
                     <button type="button" onclick="openStudentChangePasswordModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center transition shadow-sm">
                         <i class="fa-solid fa-key mr-1.5"></i> Change Password
                     </button>
@@ -435,9 +448,14 @@
                     <p class="text-xs text-slate-500 font-semibold uppercase">Membership Plan</p>
                     <h3 class="text-xl font-bold text-slate-800 mt-1" id="student-plan">--</h3>
                 </div>
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <p class="text-xs text-slate-500 font-semibold uppercase">Fee Amount</p>
-                    <h3 class="text-xl font-bold text-emerald-600 mt-1" id="student-fee">₹--</h3>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 font-semibold uppercase">Fee Amount</p>
+                        <h3 class="text-xl font-bold text-emerald-600 mt-1" id="student-fee">₹--</h3>
+                    </div>
+                    <button type="button" onclick="downloadCurrentReceipt()" class="mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-file-arrow-down text-[11px]"></i> Download Fee Receipt
+                    </button>
                 </div>
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                     <p class="text-xs text-slate-500 font-semibold uppercase">Next Due Date</p>
@@ -466,8 +484,14 @@
 
             <!-- Past Receipts Section -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-                    <h3 class="text-base font-bold text-slate-900">Past Payment Receipts</h3>
+                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Past Payment Receipts</h3>
+                        <p class="text-xs text-slate-500">Download or print your fee payment slips</p>
+                    </div>
+                    <button type="button" onclick="downloadCurrentReceipt()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                        <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Current Receipt
+                    </button>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -636,7 +660,7 @@
                 if (response.ok && data.success && data.student) {
                     localStorage.setItem('studentMobile', data.student.mobile);
                     renderStudentDashboard(data.student);
-                    fetchStudentReceipts(data.student.id);
+                    fetchStudentReceipts(data.student);
                 } else {
                     showError(data.message || "Invalid mobile number or password.");
                 }
@@ -657,7 +681,7 @@
                 const student = students.find(s => s.mobile && s.mobile.replace(/\D/g, '').includes(mobile.replace(/\D/g, '').slice(-10)));
                 if (student) {
                     renderStudentDashboard(student);
-                    fetchStudentReceipts(student.id);
+                    fetchStudentReceipts(student);
                 } else {
                     localStorage.removeItem('studentMobile');
                 }
@@ -666,16 +690,81 @@
             }
         }
 
-        async function fetchStudentReceipts(studentId) {
-            try {
-                const response = await fetch(API_BASE + '/receipts');
-                if (!response.ok) throw new Error('Failed to fetch receipts');
-                const allReceipts = await response.json();
+        async function fetchStudentReceipts(student) {
+            if (!student) student = currentStudentData;
+            if (!student) return;
 
-                currentReceiptsList = allReceipts.filter(r => r.student_id === studentId);
+            const studentId = student.id;
+            const studentMobile = student.mobile ? String(student.mobile).replace(/\D/g, '').slice(-10) : '';
+
+            try {
+                // Fetch receipts specifically for this student from backend
+                const url = `${API_BASE}/receipts?student_id=${encodeURIComponent(studentId)}&mobile=${encodeURIComponent(studentMobile)}`;
+                const response = await fetch(url);
+                let receipts = [];
+                if (response.ok) {
+                    receipts = await response.json();
+                }
+
+                // If backend returned empty or not filtered, fetch all receipts as backup and filter
+                if (!Array.isArray(receipts) || receipts.length === 0) {
+                    const allRes = await fetch(`${API_BASE}/receipts`);
+                    if (allRes.ok) {
+                        const all = await allRes.json();
+                        receipts = (all || []).filter(r => 
+                            (r.student_id && String(r.student_id) === String(studentId)) ||
+                            (studentMobile && r.mobile && String(r.mobile).replace(/\D/g, '').includes(studentMobile)) ||
+                            (student.name && r.student_name && r.student_name.trim().toLowerCase() === student.name.trim().toLowerCase())
+                        );
+                    }
+                }
+
+                const currentFee = Number(student.fee) || 0;
+                // Check if any receipt has the current active fee
+                const hasCurrentFeeReceipt = Array.isArray(receipts) && receipts.some(r => Number(r.fee) === currentFee);
+
+                // If no receipt exists or none matches the updated fee, synthesize the current active receipt at top
+                if (!hasCurrentFeeReceipt || receipts.length === 0) {
+                    const activeReceipt = {
+                        id: 'current-active',
+                        student_id: student.id,
+                        receipt_no: 'FL-REC-' + (student.seatNo || 'GEN') + '-' + (student.lastPaid ? student.lastPaid.replace(/-/g, '') : Date.now().toString().slice(-6)),
+                        payment_date: student.lastPaid || today.toISOString().split('T')[0],
+                        student_name: student.name,
+                        mobile: student.mobile || '',
+                        seat_no: student.seatNo || 'Unassigned',
+                        shift: student.shift || '12 Hours',
+                        plan: student.plan || 'Monthly',
+                        mode: student.mode || 'Cash',
+                        fee: currentFee,
+                        due_date: student.dueDate || '-'
+                    };
+                    receipts = [activeReceipt, ...(receipts || [])];
+                }
+
+                currentReceiptsList = receipts;
                 renderReceiptsTable(currentReceiptsList);
             } catch (error) {
                 console.error("Error fetching receipts:", error);
+                // Fallback: Generate receipt directly from student data so download is NEVER broken
+                if (student) {
+                    const fallbackReceipt = {
+                        id: 'current-active',
+                        student_id: student.id,
+                        receipt_no: 'FL-REC-' + (student.seatNo || 'GEN') + '-' + Date.now().toString().slice(-6),
+                        payment_date: student.lastPaid || today.toISOString().split('T')[0],
+                        student_name: student.name,
+                        mobile: student.mobile || '',
+                        seat_no: student.seatNo || 'Unassigned',
+                        shift: student.shift || '12 Hours',
+                        plan: student.plan || 'Monthly',
+                        mode: student.mode || 'Cash',
+                        fee: Number(student.fee) || 0,
+                        due_date: student.dueDate || '-'
+                    };
+                    currentReceiptsList = [fallbackReceipt];
+                    renderReceiptsTable(currentReceiptsList);
+                }
             }
         }
 
@@ -683,7 +772,7 @@
             const tbody = document.getElementById('receipts-table-body');
             tbody.innerHTML = '';
 
-            if (receipts.length === 0) {
+            if (!receipts || receipts.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-500">No past receipts found.</td></tr>';
                 return;
             }
@@ -700,9 +789,12 @@
                     '<td class="px-6 py-4 text-xs">' + r.plan + '</td>' +
                     '<td class="px-6 py-4 font-medium text-emerald-600">INR ' + Number(r.fee).toLocaleString('en-IN') + '</td>' +
                     '<td class="px-6 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold uppercase ' + modeClass + '">' + r.mode + '</span></td>' +
-                    '<td class="px-6 py-4 text-center">' +
-                    '<button onclick="printReceiptByIndex(' + index + ')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs transition shadow-sm">' +
-                    '<i class="fa-solid fa-print mr-1"></i> Print' +
+                    '<td class="px-6 py-4 text-center whitespace-nowrap">' +
+                    '<button onclick="directDownloadByIndex(' + index + ')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold mr-1.5 transition shadow-sm" title="Direct Download">' +
+                    '<i class="fa-solid fa-file-arrow-down mr-1"></i> Download' +
+                    '</button>' +
+                    '<button onclick="printReceiptByIndex(' + index + ')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm" title="View & Print">' +
+                    '<i class="fa-solid fa-print mr-1"></i> Print / PDF' +
                     '</button>' +
                     '</td>';
                 tbody.appendChild(tr);
@@ -815,12 +907,33 @@
         });
 
         // Receipt Modal Handlers
+        function populateAndOpenReceiptModal(receiptData) {
+            activeStudentReceiptData = receiptData;
+            const feeVal = Number(receiptData.fee) || 0;
+
+            document.getElementById('rcpt-no').innerText = receiptData.receipt_no;
+            document.getElementById('rcpt-date').innerText = receiptData.payment_date;
+            document.getElementById('rcpt-student-name').innerText = receiptData.student_name;
+            document.getElementById('rcpt-mobile').innerText = receiptData.mobile ? ('+91 ' + receiptData.mobile) : 'N/A';
+            document.getElementById('rcpt-seat').innerText = receiptData.seat_no;
+            document.getElementById('rcpt-shift').innerText = receiptData.shift;
+            document.getElementById('rcpt-plan').innerText = receiptData.plan;
+            document.getElementById('rcpt-due').innerText = receiptData.due_date;
+            document.getElementById('rcpt-desc').innerText = `Library Reading Hall Membership (${receiptData.plan} - ${receiptData.shift})`;
+            document.getElementById('rcpt-mode').innerText = receiptData.mode;
+            document.getElementById('rcpt-amount').innerText = '₹' + feeVal.toLocaleString('en-IN');
+            document.getElementById('rcpt-total').innerText = '₹' + feeVal.toLocaleString('en-IN');
+            document.getElementById('rcpt-words').innerText = 'Amount in words: ' + numberToWordsINR(feeVal);
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
         function printReceiptByIndex(index) {
             const r = currentReceiptsList[index];
             if (!r) return;
 
             const feeVal = Number(r.fee) || 0;
-            activeStudentReceiptData = {
+            const receiptData = {
                 receipt_no: r.receipt_no,
                 payment_date: r.payment_date,
                 student_name: r.student_name || (currentStudentData ? currentStudentData.name : 'Student'),
@@ -833,21 +946,82 @@
                 due_date: r.due_date || (currentStudentData ? currentStudentData.dueDate : '-')
             };
 
-            document.getElementById('rcpt-no').innerText = activeStudentReceiptData.receipt_no;
-            document.getElementById('rcpt-date').innerText = activeStudentReceiptData.payment_date;
-            document.getElementById('rcpt-student-name').innerText = activeStudentReceiptData.student_name;
-            document.getElementById('rcpt-mobile').innerText = activeStudentReceiptData.mobile ? ('+91 ' + activeStudentReceiptData.mobile) : 'N/A';
-            document.getElementById('rcpt-seat').innerText = activeStudentReceiptData.seat_no;
-            document.getElementById('rcpt-shift').innerText = activeStudentReceiptData.shift;
-            document.getElementById('rcpt-plan').innerText = activeStudentReceiptData.plan;
-            document.getElementById('rcpt-due').innerText = activeStudentReceiptData.due_date;
-            document.getElementById('rcpt-desc').innerText = `Library Reading Hall Membership (${activeStudentReceiptData.plan} - ${activeStudentReceiptData.shift})`;
-            document.getElementById('rcpt-mode').innerText = activeStudentReceiptData.mode;
-            document.getElementById('rcpt-amount').innerText = '₹' + feeVal.toLocaleString('en-IN');
-            document.getElementById('rcpt-total').innerText = '₹' + feeVal.toLocaleString('en-IN');
-            document.getElementById('rcpt-words').innerText = 'Amount in words: ' + numberToWordsINR(feeVal);
+            populateAndOpenReceiptModal(receiptData);
+        }
 
-            document.getElementById('receiptModal').classList.remove('hidden');
+        async function directDownloadByIndex(index) {
+            printReceiptByIndex(index);
+            await downloadReceiptImage();
+        }
+
+        async function downloadCurrentReceipt() {
+            if (!currentStudentData) {
+                alert("Student profile not loaded. Please log in.");
+                return;
+            }
+
+            // If we have receipts in list, check top receipt
+            if (currentReceiptsList && currentReceiptsList.length > 0) {
+                printReceiptByIndex(0);
+            } else {
+                const feeVal = Number(currentStudentData.fee) || 0;
+                const receiptData = {
+                    receipt_no: 'FL-REC-' + (currentStudentData.seatNo || 'GEN') + '-' + (currentStudentData.lastPaid ? currentStudentData.lastPaid.replace(/-/g, '') : Date.now().toString().slice(-6)),
+                    payment_date: currentStudentData.lastPaid || today.toISOString().split('T')[0],
+                    student_name: currentStudentData.name,
+                    mobile: currentStudentData.mobile || '',
+                    seat_no: currentStudentData.seatNo || 'Unassigned',
+                    shift: currentStudentData.shift || '12 Hours',
+                    plan: currentStudentData.plan || 'Monthly',
+                    mode: currentStudentData.mode || 'Cash',
+                    fee: feeVal,
+                    due_date: currentStudentData.dueDate || '-'
+                };
+                populateAndOpenReceiptModal(receiptData);
+            }
+        }
+
+        async function downloadReceiptImage() {
+            const btn = document.getElementById('btn-download-receipt');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Downloading...';
+            }
+
+            try {
+                const printArea = document.getElementById('receiptPrintArea');
+                if (!printArea) {
+                    window.print();
+                    return;
+                }
+
+                if (typeof html2canvas === 'function') {
+                    const canvas = await html2canvas(printArea, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const rNo = (activeStudentReceiptData && activeStudentReceiptData.receipt_no) ? activeStudentReceiptData.receipt_no.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Receipt';
+                    const link = document.createElement('a');
+                    link.download = `Friends_Library_${rNo}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    window.print();
+                }
+            } catch (err) {
+                console.error("Receipt download error:", err);
+                window.print();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
         }
 
         function triggerReceiptPrint() {

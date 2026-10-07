@@ -16,6 +16,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -385,7 +386,10 @@
                     <h3 class="text-sm font-bold text-slate-800">Fee Payment Receipt</h3>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button type="button" onclick="triggerReceiptPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                    <button type="button" id="btn-admin-download-receipt" onclick="downloadAdminReceiptImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                        <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Download (PNG)
+                    </button>
+                    <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
                         <i class="fa-solid fa-print mr-1.5"></i> Print / PDF
                     </button>
                     <button type="button" id="btn-wa-receipt" onclick="shareReceiptWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
@@ -516,11 +520,17 @@
             </div>
 
             <!-- Modal Footer (Non-printable) -->
-            <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end space-x-2 no-print">
-                <button type="button" onclick="closeReceiptModal()" class="px-4 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800">Close</button>
-                <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
-                    <i class="fa-solid fa-print mr-1.5"></i> Print Receipt
-                </button>
+            <div class="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center no-print">
+                <p class="text-[11px] text-slate-500"><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Friends Library Verified Receipt</p>
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="closeReceiptModal()" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-800">Close</button>
+                    <button type="button" onclick="downloadAdminReceiptImage()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                        <i class="fa-solid fa-file-arrow-down mr-1.5"></i> Download (PNG)
+                    </button>
+                    <button type="button" onclick="triggerReceiptPrint()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center transition shadow-sm">
+                        <i class="fa-solid fa-print mr-1.5"></i> Print Receipt
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -996,6 +1006,49 @@
                     body: JSON.stringify(activeReceiptData)
                 }).catch(e => console.warn('Receipt sync warning:', e));
             } catch(e) {}
+        }
+
+        async function downloadAdminReceiptImage() {
+            const btn = document.getElementById('btn-admin-download-receipt');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Downloading...';
+            }
+
+            try {
+                const printArea = document.getElementById('receiptPrintArea');
+                if (!printArea) {
+                    window.print();
+                    return;
+                }
+
+                if (typeof html2canvas === 'function') {
+                    const canvas = await html2canvas(printArea, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const rNo = (activeReceiptData && activeReceiptData.receipt_no) ? activeReceiptData.receipt_no.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Receipt';
+                    const link = document.createElement('a');
+                    link.download = `Friends_Library_${rNo}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    window.print();
+                }
+            } catch (err) {
+                console.error("Receipt download error:", err);
+                window.print();
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
         }
 
         function triggerReceiptPrint() {
