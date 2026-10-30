@@ -11,15 +11,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
         body {
             font-family: 'Inter', sans-serif;
+        }
+        section[id], footer[id] {
+            scroll-margin-top: 5rem;
         }
     </style>
 </head>
 
 <body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white">
     <div id="root"></div>
-    <script type="module" src="/dist/assets/app.js"></script>
+    <script type="module" src="/assets/app.js"></script>
 </body>
 
 </html>

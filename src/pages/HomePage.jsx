@@ -1,9 +1,42 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 export default function HomePage() {
+    const location = useLocation();
+
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash) {
+            const timer = setTimeout(() => {
+                const element = document.querySelector(hash);
+                if (element) {
+                    const navOffset = 80;
+                    const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                    window.scrollTo({
+                        top: elementPosition - navOffset,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [location]);
+
+    const scrollToLocation = (e) => {
+        e.preventDefault();
+        const element = document.querySelector('#location');
+        if (element) {
+            const navOffset = 80;
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({
+                top: elementPosition - navOffset,
+                behavior: 'smooth'
+            });
+            window.history.pushState(null, '', '#location');
+        }
+    };
     return (
         <div className="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col">
             <Navbar />
@@ -33,9 +66,13 @@ export default function HomePage() {
                         <Link to="/register" className="bg-indigo-500 hover:bg-indigo-600 border border-indigo-400/50 text-white font-semibold text-lg px-8 py-4 rounded-xl transition shadow-xl shadow-indigo-600/30 flex items-center justify-center">
                             Book Your Seat <i className="fa-solid fa-arrow-right ml-2"></i>
                         </Link>
-                        <a href="#location" className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-semibold text-lg px-8 py-4 rounded-xl transition flex items-center justify-center">
+                        <button
+                            type="button"
+                            onClick={scrollToLocation}
+                            className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-semibold text-lg px-8 py-4 rounded-xl transition flex items-center justify-center cursor-pointer"
+                        >
                             <i className="fa-solid fa-location-dot mr-2"></i> View Location
-                        </a>
+                        </button>
                     </div>
                 </div>
             </section>
