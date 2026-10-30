@@ -114,13 +114,27 @@ export default function AdminDashboard() {
 
     // Delete student
     const handleDeleteStudent = async (id) => {
-        if (confirm('Delete this student? Moved to past members.')) {
-            try {
-                await api.deleteStudent(id);
-                fetchData();
-            } catch (err) {
-                console.error('Error deleting student:', err);
+        if (!confirm('Are you sure you want to move this student to past members?')) return;
+        try {
+            const studentToDelete = dbStudents.find(s => String(s.id) === String(id));
+            const res = await api.deleteStudent(id);
+            if (res && (res.error || res.success === false)) {
+                alert('Failed to delete student: ' + (res.error || res.message || 'Unknown error'));
+                return;
             }
+            if (studentToDelete) {
+                const archived = {
+                    ...studentToDelete,
+                    deleted_at: new Date().toISOString()
+                };
+                setDbStudents(prev => prev.filter(s => String(s.id) !== String(id)));
+                setPastMembers(prev => [archived, ...prev.filter(p => String(p.id) !== String(id))]);
+            }
+            await fetchData();
+            alert('Student moved to past members successfully.');
+        } catch (err) {
+            console.error('Error deleting student:', err);
+            alert('Error deleting student: ' + (err.message || 'Unknown error'));
         }
     };
 

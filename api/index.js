@@ -29,7 +29,13 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 // Local storage fallback
-const getDataDir = () => process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, '..', 'data');
+const getDataDir = () => {
+    if (process.env.DATA_DIR) return path.resolve(process.env.DATA_DIR);
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+        return path.join('/tmp', 'data');
+    }
+    return path.join(__dirname, '..', 'data');
+};
 const getStudentsJsonPath = () => path.join(getDataDir(), 'students.json');
 const getPastJsonPath = () => path.join(getDataDir(), 'past_members.json');
 const getReceiptsJsonPath = () => path.join(getDataDir(), 'receipts.json');
@@ -110,8 +116,33 @@ function normalizeStudent(s) {
     };
 }
 
+function initDataDirectory() {
+    try {
+        const dir = getDataDir();
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        const studentsPath = getStudentsJsonPath();
+        const pastPath = getPastJsonPath();
+        const receiptsPath = getReceiptsJsonPath();
+
+        if (!fs.existsSync(studentsPath) && Array.isArray(bundledStudents) && bundledStudents.length > 0) {
+            fs.writeFileSync(studentsPath, JSON.stringify(bundledStudents, null, 2), 'utf8');
+        }
+        if (!fs.existsSync(pastPath)) {
+            fs.writeFileSync(pastPath, JSON.stringify(bundledPastMembers || [], null, 2), 'utf8');
+        }
+        if (!fs.existsSync(receiptsPath) && Array.isArray(bundledReceipts) && bundledReceipts.length > 0) {
+            fs.writeFileSync(receiptsPath, JSON.stringify(bundledReceipts, null, 2), 'utf8');
+        }
+    } catch (e) {
+        console.warn('Could not initialize data directory:', e.message);
+    }
+}
+
 function loadLocalData() {
     try {
+        initDataDirectory();
         const studentsJsonPath = getStudentsJsonPath();
         const pastJsonPath = getPastJsonPath();
         const receiptsJsonPath = getReceiptsJsonPath();
@@ -137,7 +168,7 @@ function loadLocalData() {
                 console.error('Failed reading past_members.json from disk:', e);
             }
         }
-        if (!Array.isArray(loadedPast) || loadedPast.length === 0) {
+        if (!Array.isArray(loadedPast)) {
             loadedPast = Array.isArray(bundledPastMembers) ? bundledPastMembers : [];
         }
         localPastMembers = loadedPast.map(s => normalizeStudent(s));
@@ -498,18 +529,18 @@ app.get('/api/past-members', async(req, res) => {
             if (error) {
                 console.warn('[Supabase] Error fetching past members, falling back to local dataset:', error.message);
             }
-            if (localPastMembers && localPastMembers.length > 0) {
+            if (localPastMembers) {
                 return res.json(localPastMembers);
             }
         }
 
-        if (!localPastMembers || localPastMembers.length === 0) {
+        if (!localPastMembers) {
             loadLocalData();
         }
-        return res.json(localPastMembers);
+        return res.json(localPastMembers || []);
     } catch (err) {
         console.error('Error fetching past members:', err);
-        return res.json(localPastMembers);
+        return res.json(localPastMembers || []);
     }
 });
 
@@ -1195,43 +1226,95 @@ app.put('/api/students/:id/adjust-leave', async(req, res) => {
 
 // 14. Delete / Archive Student
 app.delete('/api/students/:id', async(req, res) => {
-    const id = req.params.id;
+    try {
+        const id = req.params.id;
+        let student = null;
 
-    if (supabase) {
-        const { data: student, error: fetchErr } = await supabase.from('students').select('*').eq('id', id).single();
-        if (fetchErr || !student) return res.status(404).json({ error: 'Student not found' });
+        if (supabase) {
+            try {
+                const { data } = await supabase.from('students').select('*').eq('id', id).single();
+                if (data) student = data;
+            } catch (e) {
+                console.warn('[Supabase] Error finding student for deletion:', e.message);
+            }
+        }
 
-        await supabase.from('past_members').insert([{
-            id: student.id,
-            photo: student.photo,
-            seatNo: student.seatNo,
-            name: student.name,
-            shift: student.shift,
-            mobile: student.mobile,
-            aadhar: student.aadhar,
-            joiningDate: student.joiningDate,
-            plan: student.plan,
-            cardNo: student.cardNo,
-            fee: student.fee,
-            mode: student.mode,
-            lastPaid: student.lastPaid,
-            dueDate: student.dueDate,
-            remarks: student.remarks
-        }]);
+        if (!student) {
+            const localIdx = localStudents.findIndex(s => String(s.id) === String(id) || String(s.numericId) === String(id));
+            if (localIdx !== -1) {
+                student = localStudents[localIdx];
+            }
+        }
 
-        await supabase.from('students').delete().eq('id', id);
-        return res.json({ success: true, message: 'Archived successfully' });
+        if (!student) {
+            return res.status(404).json({ success: false, error: 'Student not found' });
+        }
+
+        const archivedStudent = {
+            ...normalizeStudent(student),
+            deleted_at: new Date().toISOString()
+        };
+
+        if (supabase) {
+            try {
+                const { error: insErr } = await supabase.from('past_members').insert([{
+                    id: archivedStudent.id,
+                    photo: archivedStudent.photo || '',
+                    seatNo: archivedStudent.seatNo || '',
+                    seat_no: archivedStudent.seatNo || '',
+                    name: archivedStudent.name,
+                    shift: archivedStudent.shift || '12 Hours',
+                    mobile: archivedStudent.mobile || '',
+                    aadhar: archivedStudent.aadhar || '',
+                    joiningDate: archivedStudent.joiningDate || '',
+                    joining_date: archivedStudent.joiningDate || '',
+                    plan: archivedStudent.plan || 'Monthly',
+                    cardNo: archivedStudent.cardNo || '',
+                    card_no: archivedStudent.cardNo || '',
+                    fee: Number(archivedStudent.fee) || 0,
+                    mode: archivedStudent.mode || 'Cash',
+                    payment_mode: archivedStudent.mode || 'Cash',
+                    lastPaid: archivedStudent.lastPaid || '',
+                    last_paid: archivedStudent.lastPaid || '',
+                    dueDate: archivedStudent.dueDate || '',
+                    due_date: archivedStudent.dueDate || '',
+                    remarks: archivedStudent.remarks || '',
+                    deleted_at: archivedStudent.deleted_at
+                }]);
+                if (insErr) {
+                    console.warn('[Supabase] past_members insert retry with minimal columns:', insErr.message);
+                    await supabase.from('past_members').insert([{
+                        name: archivedStudent.name,
+                        mobile: archivedStudent.mobile || '',
+                        shift: archivedStudent.shift,
+                        fee: Number(archivedStudent.fee) || 0,
+                        deleted_at: archivedStudent.deleted_at
+                    }]);
+                }
+            } catch (e) {
+                console.warn('[Supabase] Error archiving to past_members table:', e.message);
+            }
+
+            try {
+                await supabase.from('students').delete().eq('id', id);
+            } catch (delErr) {
+                console.warn('[Supabase] Error deleting from students table:', delErr.message);
+            }
+        }
+
+        // Always update local storage and memory
+        const localIdx = localStudents.findIndex(s => String(s.id) === String(id) || String(s.numericId) === String(id));
+        if (localIdx !== -1) {
+            localStudents.splice(localIdx, 1);
+        }
+        localPastMembers = [archivedStudent, ...localPastMembers.filter(p => String(p.id) !== String(archivedStudent.id))];
+        saveLocalData();
+
+        return res.json({ success: true, message: 'Archived successfully', student: archivedStudent });
+    } catch (err) {
+        console.error('Delete student error:', err);
+        return res.status(500).json({ success: false, error: 'Internal server error while archiving student' });
     }
-
-    const index = localStudents.findIndex(s => String(s.id) === String(id) || String(s.numericId) === String(id));
-    if (index === -1) return res.status(404).json({ error: 'Student not found' });
-
-    const student = localStudents.splice(index, 1)[0];
-    student.deleted_at = new Date().toISOString();
-    localPastMembers.unshift(student);
-    saveLocalData();
-
-    res.json({ success: true, message: 'Archived successfully' });
 });
 
 // 15. Bulk Upload Excel
