@@ -35,6 +35,26 @@ const getPastJsonPath = () => path.join(getDataDir(), 'past_members.json');
 const getReceiptsJsonPath = () => path.join(getDataDir(), 'receipts.json');
 const getUploadDir = () => process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(__dirname, '..', 'public', 'uploads');
 
+// Static require ensures bundlers (@vercel/nft) package JSON datasets into serverless bundles
+let bundledStudents = [];
+try {
+    bundledStudents = require('../data/students.json');
+} catch (e) {
+    bundledStudents = [];
+}
+let bundledPastMembers = [];
+try {
+    bundledPastMembers = require('../data/past_members.json');
+} catch (e) {
+    bundledPastMembers = [];
+}
+let bundledReceipts = [];
+try {
+    bundledReceipts = require('../data/receipts.json');
+} catch (e) {
+    bundledReceipts = [];
+}
+
 let localStudents = [];
 let localPastMembers = [];
 let localPending = [];
@@ -59,48 +79,100 @@ function cleanStudentRemarks(remarks) {
     return String(remarks).replace(/\[PWD:[^\]]+\]\s*/g, '').trim();
 }
 
+// Normalize student object for cross-compatibility between CamelCase and Snake_Case
+function normalizeStudent(s) {
+    if (!s) return s;
+    return {
+        ...s,
+        id: s.id,
+        name: s.name || '',
+        mobile: s.mobile || '',
+        shift: s.shift || '12 Hours',
+        seatNo: s.seatNo || s.seat_no || '',
+        seat_no: s.seatNo || s.seat_no || '',
+        plan: s.plan || 'Monthly',
+        fee: s.fee !== undefined ? s.fee : 0,
+        mode: s.mode || s.payment_mode || 'Cash',
+        payment_mode: s.mode || s.payment_mode || 'Cash',
+        lastPaid: s.lastPaid || s.last_paid || '',
+        last_paid: s.lastPaid || s.last_paid || '',
+        joiningDate: s.joiningDate || s.joining_date || '',
+        joining_date: s.joiningDate || s.joining_date || '',
+        dueDate: s.dueDate || s.due_date || '',
+        due_date: s.dueDate || s.due_date || '',
+        cardNo: s.cardNo || s.card_no || '',
+        card_no: s.cardNo || s.card_no || '',
+        aadhar: s.aadhar || s.aadhaar || '',
+        aadhaar: s.aadhar || s.aadhaar || '',
+        photo: s.photo || '',
+        password: extractStudentPassword(s),
+        remarks: cleanStudentRemarks(s.remarks)
+    };
+}
+
 function loadLocalData() {
     try {
         const studentsJsonPath = getStudentsJsonPath();
         const pastJsonPath = getPastJsonPath();
         const receiptsJsonPath = getReceiptsJsonPath();
 
+        let loadedStudents = null;
         if (fs.existsSync(studentsJsonPath)) {
-            localStudents = JSON.parse(fs.readFileSync(studentsJsonPath, 'utf8'));
-            localStudents.forEach(s => {
-                s.password = extractStudentPassword(s);
-            });
-        } else {
-            localStudents = [];
+            try {
+                loadedStudents = JSON.parse(fs.readFileSync(studentsJsonPath, 'utf8'));
+            } catch (e) {
+                console.error('Failed reading students.json from disk:', e);
+            }
         }
+        if (!Array.isArray(loadedStudents) || loadedStudents.length === 0) {
+            loadedStudents = Array.isArray(bundledStudents) ? bundledStudents : [];
+        }
+        localStudents = loadedStudents.map(s => normalizeStudent(s));
 
+        let loadedPast = null;
         if (fs.existsSync(pastJsonPath)) {
-            localPastMembers = JSON.parse(fs.readFileSync(pastJsonPath, 'utf8'));
-        } else {
-            localPastMembers = [];
+            try {
+                loadedPast = JSON.parse(fs.readFileSync(pastJsonPath, 'utf8'));
+            } catch (e) {
+                console.error('Failed reading past_members.json from disk:', e);
+            }
         }
+        if (!Array.isArray(loadedPast) || loadedPast.length === 0) {
+            loadedPast = Array.isArray(bundledPastMembers) ? bundledPastMembers : [];
+        }
+        localPastMembers = loadedPast.map(s => normalizeStudent(s));
 
         localPending = [];
 
+        let loadedReceipts = null;
         if (fs.existsSync(receiptsJsonPath)) {
-            localReceipts = JSON.parse(fs.readFileSync(receiptsJsonPath, 'utf8'));
-        } else {
-            localReceipts = localStudents.filter(s => s.lastPaid && s.fee).map((s, idx) => ({
-                id: idx + 1,
-                student_id: s.id,
-                receipt_no: `FL-REC-${String(100000 + idx)}`,
-                student_name: s.name,
-                mobile: s.mobile || '',
-                seat_no: s.seatNo,
-                shift: s.shift || '12 Hours',
-                fee: Number(s.fee),
-                mode: s.mode || 'Cash',
-                plan: s.plan || 'Monthly',
-                payment_date: s.lastPaid,
-                due_date: s.dueDate || ''
-            }));
-            saveLocalReceipts();
+            try {
+                loadedReceipts = JSON.parse(fs.readFileSync(receiptsJsonPath, 'utf8'));
+            } catch (e) {
+                console.error('Failed reading receipts.json from disk:', e);
+            }
         }
+        if (!Array.isArray(loadedReceipts) || loadedReceipts.length === 0) {
+            if (Array.isArray(bundledReceipts) && bundledReceipts.length > 0) {
+                loadedReceipts = bundledReceipts;
+            } else {
+                loadedReceipts = localStudents.filter(s => (s.lastPaid || s.last_paid) && s.fee).map((s, idx) => ({
+                    id: idx + 1,
+                    student_id: s.id,
+                    receipt_no: `FL-REC-${String(100000 + idx)}`,
+                    student_name: s.name,
+                    mobile: s.mobile || '',
+                    seat_no: s.seatNo,
+                    shift: s.shift || '12 Hours',
+                    fee: Number(s.fee),
+                    mode: s.mode || 'Cash',
+                    plan: s.plan || 'Monthly',
+                    payment_date: s.lastPaid,
+                    due_date: s.dueDate || ''
+                }));
+            }
+        }
+        localReceipts = loadedReceipts;
     } catch (err) {
         console.error('Error loading local dataset:', err);
     }
@@ -115,7 +187,7 @@ function saveLocalData() {
         fs.writeFileSync(getStudentsJsonPath(), JSON.stringify(localStudents, null, 2), 'utf8');
         fs.writeFileSync(getPastJsonPath(), JSON.stringify(localPastMembers, null, 2), 'utf8');
     } catch (err) {
-        console.error('Error writing to local dataset:', err);
+        console.warn('Local file write skipped (read-only environment):', err.message);
     }
 }
 
@@ -127,7 +199,7 @@ function saveLocalReceipts() {
         }
         fs.writeFileSync(getReceiptsJsonPath(), JSON.stringify(localReceipts, null, 2), 'utf8');
     } catch (err) {
-        console.error('Error writing to receipts dataset:', err);
+        console.warn('Local receipt write skipped (read-only environment):', err.message);
     }
 }
 
@@ -214,9 +286,11 @@ app.post('/api/student/login', async (req, res) => {
 
         if (supabase) {
             const { data, error } = await supabase.from('students').select('*');
-            if (error) return res.status(500).json({ success: false, message: error.message });
-            student = findStudentByPhone(data || [], cleanMobile);
-        } else {
+            if (!error && Array.isArray(data) && data.length > 0) {
+                student = findStudentByPhone(data, cleanMobile);
+            }
+        }
+        if (!student) {
             student = findStudentByPhone(localStudents, cleanMobile);
         }
 
@@ -327,9 +401,11 @@ app.post('/api/student/change-password', async (req, res) => {
 
         if (supabase) {
             const { data, error } = await supabase.from('students').select('*');
-            if (error) return res.status(500).json({ success: false, message: error.message });
-            student = findStudentByPhone(data || [], cleanMobile);
-        } else {
+            if (!error && Array.isArray(data) && data.length > 0) {
+                student = findStudentByPhone(data, cleanMobile);
+            }
+        }
+        if (!student) {
             student = findStudentByPhone(localStudents, cleanMobile);
         }
 
@@ -379,42 +455,62 @@ app.post('/api/student/change-password', async (req, res) => {
 
 // 2. Fetch Active Students
 app.get('/api/students', async(req, res) => {
-    if (supabase) {
-        const { data, error } = await supabase
-            .from('students')
-            .select('*')
-            .order('id', { ascending: false });
+    try {
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('students')
+                .select('*')
+                .order('id', { ascending: false });
 
-        if (error) return res.status(500).json({ error: error.message });
-        (data || []).forEach(s => {
-            s.password = extractStudentPassword(s);
-            s.remarks = cleanStudentRemarks(s.remarks);
-        });
-        return res.json(data);
+            if (!error && Array.isArray(data) && data.length > 0) {
+                return res.json(data.map(s => normalizeStudent(s)));
+            }
+            if (error) {
+                console.warn('[Supabase] Error fetching students, falling back to local dataset:', error.message);
+            }
+            if (localStudents && localStudents.length > 0) {
+                return res.json(localStudents);
+            }
+        }
+
+        if (!localStudents || localStudents.length === 0) {
+            loadLocalData();
+        }
+        return res.json(localStudents);
+    } catch (err) {
+        console.error('Error fetching students:', err);
+        return res.json(localStudents);
     }
-
-    localStudents.forEach(s => {
-        s.password = extractStudentPassword(s);
-    });
-    res.json(localStudents);
 });
 
 // 3. Fetch Past Members
 app.get('/api/past-members', async(req, res) => {
-    if (supabase) {
-        const { data, error } = await supabase
-            .from('past_members')
-            .select('*')
-            .order('deleted_at', { ascending: false });
+    try {
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('past_members')
+                .select('*')
+                .order('deleted_at', { ascending: false });
 
-        if (error) return res.status(500).json({ error: error.message });
-        (data || []).forEach(s => {
-            s.remarks = cleanStudentRemarks(s.remarks);
-        });
-        return res.json(data);
+            if (!error && Array.isArray(data) && data.length > 0) {
+                return res.json(data.map(s => normalizeStudent(s)));
+            }
+            if (error) {
+                console.warn('[Supabase] Error fetching past members, falling back to local dataset:', error.message);
+            }
+            if (localPastMembers && localPastMembers.length > 0) {
+                return res.json(localPastMembers);
+            }
+        }
+
+        if (!localPastMembers || localPastMembers.length === 0) {
+            loadLocalData();
+        }
+        return res.json(localPastMembers);
+    } catch (err) {
+        console.error('Error fetching past members:', err);
+        return res.json(localPastMembers);
     }
-
-    res.json(localPastMembers);
 });
 
 // 4. Fetch Receipts
@@ -429,9 +525,11 @@ app.get('/api/receipts', async(req, res) => {
                 .select('*')
                 .order('id', { ascending: false });
 
-            if (error) return res.status(500).json({ error: error.message });
-            receipts = data || [];
-        } else {
+            if (!error && Array.isArray(data) && data.length > 0) {
+                receipts = data;
+            }
+        }
+        if (!receipts || receipts.length === 0) {
             receipts = localReceipts || [];
         }
 
@@ -576,31 +674,38 @@ app.post('/api/receipts', async(req, res) => {
 
 // 6. Live Seat Shift Status
 app.get('/api/seats-shift-status', async(req, res) => {
-    let students = [];
-    if (supabase) {
-        const { data, error } = await supabase
-            .from('students')
-            .select('id, "seatNo", name, shift, "lastPaid", "dueDate"');
+    try {
+        let students = [];
+        if (supabase) {
+            const { data, error } = await supabase
+                .from('students')
+                .select('id, "seatNo", name, shift, "lastPaid", "dueDate"');
 
-        if (error) return res.status(500).json({ error: error.message });
-        students = data;
-    } else {
-        students = localStudents;
+            if (!error && Array.isArray(data) && data.length > 0) {
+                students = data.map(s => normalizeStudent(s));
+            }
+        }
+        if (!students || students.length === 0) {
+            students = localStudents;
+        }
+
+        const seatMapping = {};
+        students.forEach(student => {
+            const seat = student.seatNo || student.seat_no;
+            if (!seat || seat === 'Pending') return;
+            seatMapping[seat] = {
+                occupied: true,
+                studentName: student.name,
+                shift: student.shift,
+                studentId: student.id
+            };
+        });
+
+        res.json({ seatMapping });
+    } catch (err) {
+        console.error('Error fetching seat shift status:', err);
+        res.json({ seatMapping: {} });
     }
-
-    const seatMapping = {};
-    students.forEach(student => {
-        const seat = student.seatNo;
-        if (!seat || seat === 'Pending') return;
-        seatMapping[seat] = {
-            occupied: true,
-            studentName: student.name,
-            shift: student.shift,
-            studentId: student.id
-        };
-    });
-
-    res.json({ seatMapping });
 });
 
 // 7. Public Student Registration

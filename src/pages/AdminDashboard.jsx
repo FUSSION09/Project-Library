@@ -222,11 +222,11 @@ export default function AdminDashboard() {
             const query = searchQuery.toLowerCase();
             const nameMatch = (student.name || '').toLowerCase().includes(query);
             const mobileMatch = (student.mobile || '').includes(query);
-            const seatMatch = (student.seatNo || '').toLowerCase().includes(query);
+            const seatMatch = (student.seatNo || student.seat_no || '').toLowerCase().includes(query);
             if (!nameMatch && !mobileMatch && !seatMatch) return false;
         }
         if (currentView === 'active') {
-            const daysDiff = getDaysDiff(student.dueDate);
+            const daysDiff = getDaysDiff(student.dueDate || student.due_date);
             let currentStatus = 'Safe';
             if (daysDiff < 0) currentStatus = 'Overdue';
             else if (daysDiff <= 3) currentStatus = 'Due Soon';
@@ -533,18 +533,18 @@ export default function AdminDashboard() {
                                                 <td className="px-3 py-2.5">
                                                     <img src={photoUrl} alt={student.name} className="w-8 h-8 rounded-full object-cover" />
                                                 </td>
-                                                <td className="px-3 py-2.5 font-bold">{student.seatNo}</td>
+                                                <td className="px-3 py-2.5 font-bold">{student.seatNo || student.seat_no}</td>
                                                 <td className="px-3 py-2.5 font-medium">{student.name}</td>
                                                 <td className="px-3 py-2.5 text-xs">{student.shift}</td>
                                                 <td className="px-3 py-2.5 text-xs">{student.mobile}</td>
-                                                <td className="px-3 py-2.5 text-xs">{student.aadhar || '-'}</td>
+                                                <td className="px-3 py-2.5 text-xs">{student.aadhar || student.aadhaar || '-'}</td>
                                                 <td className="px-3 py-2.5 text-xs">
                                                     {currentView === 'past'
                                                         ? (student.deleted_at ? student.deleted_at.substring(0, 10) : '-')
-                                                        : (student.joiningDate || '-')}
+                                                        : (student.joiningDate || student.joining_date || '-')}
                                                 </td>
                                                 <td className="px-3 py-2.5 text-xs font-bold text-indigo-700">{student.plan}</td>
-                                                <td className="px-3 py-2.5 text-xs">{student.cardNo || '-'}</td>
+                                                <td className="px-3 py-2.5 text-xs">{student.cardNo || student.card_no || '-'}</td>
                                                 <td className="px-3 py-2.5 font-semibold text-emerald-600">
                                                     {currentView === 'active' ? (
                                                         <>
@@ -591,9 +591,9 @@ export default function AdminDashboard() {
                                                     </td>
                                                 )}
 
-                                                <td className="px-3 py-2.5 text-xs">{student.mode}</td>
-                                                <td className="px-3 py-2.5 text-xs">{student.lastPaid}</td>
-                                                <td className="px-3 py-2.5 font-bold text-xs">{student.dueDate}</td>
+                                                <td className="px-3 py-2.5 text-xs">{student.mode || student.payment_mode || 'Cash'}</td>
+                                                <td className="px-3 py-2.5 text-xs">{student.lastPaid || student.last_paid}</td>
+                                                <td className="px-3 py-2.5 font-bold text-xs">{student.dueDate || student.due_date}</td>
 
                                                 {/* Actions Column */}
                                                 <td className="px-3 py-2.5 text-center whitespace-nowrap">
