@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const app = require('./api/index.js');
@@ -12,12 +13,18 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static frontend assets from public directory
+// Serve static frontend assets from dist directory (built output) and public directory
+if (fs.existsSync(path.join(__dirname, 'dist'))) {
+    app.use(express.static(path.join(__dirname, 'dist')));
+}
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Fallback routes for React SPA
 app.get(['/', '/admin', '/student', '/login', '/register'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const indexPath = fs.existsSync(path.join(__dirname, 'dist', 'index.html'))
+        ? path.join(__dirname, 'dist', 'index.html')
+        : path.join(__dirname, 'public', 'index.html');
+    res.sendFile(indexPath);
 });
 
 if (require.main === module) {
