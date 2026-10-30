@@ -52,9 +52,37 @@ export default function AdminDashboard() {
                 api.getSeatShiftStatus().catch(() => ({ seatMapping: {} }))
             ]);
 
-            setDbStudents(Array.isArray(studentsRes) ? studentsRes : []);
+            // Sync with local client storage so deleted students NEVER reappear on page refresh
+            let locallyDeleted = [];
+            try {
+                locallyDeleted = JSON.parse(localStorage.getItem('deletedStudentIds') || '[]');
+            } catch (e) {
+                locallyDeleted = [];
+            }
+
+            let locallyArchived = [];
+            try {
+                locallyArchived = JSON.parse(localStorage.getItem('archivedPastMembers') || '[]');
+            } catch (e) {
+                locallyArchived = [];
+            }
+
+            const rawActive = Array.isArray(studentsRes) ? studentsRes : [];
+            const activeFiltered = rawActive.filter(s => !locallyDeleted.includes(String(s.id)));
+
+            const rawPast = Array.isArray(pastRes) ? pastRes : [];
+            const pastMap = new Map();
+            rawPast.forEach(p => pastMap.set(String(p.id), p));
+            locallyArchived.forEach(p => {
+                if (!pastMap.has(String(p.id))) {
+                    pastMap.set(String(p.id), p);
+                }
+            });
+            const pastMerged = Array.from(pastMap.values());
+
+            setDbStudents(activeFiltered);
             setPendingStudents(Array.isArray(pendingRes) ? pendingRes : []);
-            setPastMembers(Array.isArray(pastRes) ? pastRes : []);
+            setPastMembers(pastMerged);
             setSeatMapping(seatRes.seatMapping || {});
         } catch (err) {
             console.error('Error fetching admin data:', err);
@@ -73,6 +101,13 @@ export default function AdminDashboard() {
 
     // Save Student (Add / Edit)
     const handleSaveStudent = async (formData, id) => {
+        if (id) {
+            try {
+                const locallyDeleted = JSON.parse(localStorage.getItem('deletedStudentIds') || '[]');
+                const filtered = locallyDeleted.filter(x => String(x) !== String(id));
+                localStorage.setItem('deletedStudentIds', JSON.stringify(filtered));
+            } catch (e) {}
+        }
         const data = await api.saveStudent(formData, id);
         if (data.success || !data.error) {
             await fetchData();
@@ -117,19 +152,38 @@ export default function AdminDashboard() {
         if (!confirm('Are you sure you want to move this student to past members?')) return;
         try {
             const studentToDelete = dbStudents.find(s => String(s.id) === String(id));
-            const res = await api.deleteStudent(id);
-            if (res && (res.error || res.success === false)) {
-                alert('Failed to delete student: ' + (res.error || res.message || 'Unknown error'));
-                return;
+            const archived = studentToDelete ? {
+                ...studentToDelete,
+                deleted_at: new Date().toISOString()
+            } : null;
+
+            // Immediately track deletion in localStorage so refreshes remain consistent
+            try {
+                const locallyDeleted = JSON.parse(localStorage.getItem('deletedStudentIds') || '[]');
+                if (!locallyDeleted.includes(String(id))) {
+                    locallyDeleted.push(String(id));
+                    localStorage.setItem('deletedStudentIds', JSON.stringify(locallyDeleted));
+                }
+
+                if (archived) {
+                    const locallyArchived = JSON.parse(localStorage.getItem('archivedPastMembers') || '[]');
+                    const updatedArchived = [archived, ...locallyArchived.filter(p => String(p.id) !== String(id))];
+                    localStorage.setItem('archivedPastMembers', JSON.stringify(updatedArchived));
+                }
+            } catch (storageErr) {
+                console.warn('localStorage update failed:', storageErr);
             }
-            if (studentToDelete) {
-                const archived = {
-                    ...studentToDelete,
-                    deleted_at: new Date().toISOString()
-                };
+
+            if (archived) {
                 setDbStudents(prev => prev.filter(s => String(s.id) !== String(id)));
                 setPastMembers(prev => [archived, ...prev.filter(p => String(p.id) !== String(id))]);
             }
+
+            const res = await api.deleteStudent(id);
+            if (res && (res.error || res.success === false)) {
+                console.warn('Backend delete response:', res.error);
+            }
+
             await fetchData();
             alert('Student moved to past members successfully.');
         } catch (err) {

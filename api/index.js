@@ -496,6 +496,40 @@ app.get('/api/students', async(req, res) => {
             if (!error && Array.isArray(data) && data.length > 0) {
                 return res.json(data.map(s => normalizeStudent(s)));
             }
+
+            // Auto-seed Supabase students table if it is currently empty
+            if (!error && Array.isArray(data) && data.length === 0 && localStudents && localStudents.length > 0) {
+                console.log('[Supabase] Empty students table detected. Seeding from bundled dataset...');
+                try {
+                    const seedRows = localStudents.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        mobile: s.mobile,
+                        shift: s.shift,
+                        seatNo: s.seatNo || '',
+                        seat_no: s.seatNo || '',
+                        aadhar: s.aadhar || '',
+                        cardNo: s.cardNo || '',
+                        card_no: s.cardNo || '',
+                        fee: Number(s.fee) || 0,
+                        mode: s.mode || 'Cash',
+                        payment_mode: s.mode || 'Cash',
+                        lastPaid: s.lastPaid || '',
+                        last_paid: s.lastPaid || '',
+                        joiningDate: s.joiningDate || '',
+                        joining_date: s.joiningDate || '',
+                        dueDate: s.dueDate || '',
+                        due_date: s.dueDate || '',
+                        remarks: s.remarks || '',
+                        plan: s.plan || 'Monthly'
+                    }));
+                    await supabase.from('students').upsert(seedRows);
+                } catch (seedErr) {
+                    console.warn('[Supabase] Auto-seed error:', seedErr.message);
+                }
+                return res.json(localStudents);
+            }
+
             if (error) {
                 console.warn('[Supabase] Error fetching students, falling back to local dataset:', error.message);
             }
