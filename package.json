@@ -20,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "@vitejs/plugin-react": "^6.1.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "html2canvas": "^1.4.1",
@@ -31,10 +32,7 @@
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "sqlite3": "^6.0.1",
+    "vite": "^8.3.5",
     "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.2",
-    "vite": "^8.3.5"
   }
 }
