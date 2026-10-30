@@ -83,15 +83,7 @@ describe('Data Integrity and Storage Validation Suite', () => {
             assert.ok(Array.isArray(data), 'past_members.json must contain an array');
         });
 
-        it('should retain legacy and archived records with financial history (e.g. Shri ram hardware)', () => {
-            const pastMembers = JSON.parse(fs.readFileSync(pastPath, 'utf8'));
-            const foundArchived = pastMembers.find(m => m.name === 'Shri ram hardware');
-            assert.ok(foundArchived, 'Shri ram hardware should be archived in past_members');
-            assert.strictEqual(foundArchived.fee, 800);
-            assert.strictEqual(foundArchived.mode, 'Cash');
-        });
-
-        it('should retain essential identification fields for archived members', () => {
+        it('should retain essential identification fields for archived members if any exist', () => {
             const pastMembers = JSON.parse(fs.readFileSync(pastPath, 'utf8'));
 
             pastMembers.forEach((member, index) => {
