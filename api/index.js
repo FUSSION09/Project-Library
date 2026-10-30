@@ -1135,37 +1135,166 @@ app.post('/api/students/bulk-upload', upload.single('excel'), async(req, res) =>
 
     try {
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        const records = [];
 
-        const records = rows.map((row, idx) => ({
-            seatNo: row.SeatNo || row['Seat No'] || '',
-            name: row.Name || row['Name of Student'] || row['Name of Students'] || '',
-            shift: row.Shift || '12 Hours',
-            mobile: String(row.Mobile || row['Mobile No'] || row['Mobile No.'] || ''),
-            aadhar: String(row.Aadhar || row['Adhar Number'] || ''),
-            joiningDate: row.JoiningDate || row['Joining Date'] || row.JOIN || '',
-            plan: row.Plan || 'Monthly',
-            cardNo: String(row.CardNo || row['Card no.'] || ''),
-            fee: Number(row.Fee || row.FESS) || 0,
-            mode: row.Mode || 'Cash',
-            lastPaid: row.LastPaid || row['Last Payment Date'] || '',
-            dueDate: row.DueDate || row['Due Date'] || '',
-            remarks: row.Remarks || row.REMARK || ''
-        }));
+        function formatDate(val) {
+            if (!val) return '';
+            if (typeof val === 'number') {
+                try { return xlsx.SSF.format('yyyy-mm-dd', val); } catch (e) {}
+            }
+            if (typeof val === 'string' && val.trim().match(/^\d{4}-\d{2}-\d{2}$/)) return val.trim();
+            return String(val).trim();
+        }
+
+        workbook.SheetNames.forEach(sheetName => {
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) return;
+
+            const rawMatrix = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (!rawMatrix || rawMatrix.length === 0) return;
+
+            let headerRowIndex = 0;
+            let defaultShift = '12 Hours';
+
+            const titleText = (rawMatrix[0] || []).join(' ').toLowerCase();
+            if (titleText.includes('6 hr') || titleText.includes('6 hrs') || sheetName.toLowerCase().includes('6 hr')) {
+                defaultShift = '6 Hours';
+            } else if (titleText.includes('12 hr') || titleText.includes('12 hrs') || sheetName.toLowerCase().includes('12 hr')) {
+                defaultShift = '12 Hours';
+            } else if (titleText.includes('24 hr') || titleText.includes('24 hrs') || sheetName.toLowerCase().includes('24 hr')) {
+                defaultShift = '24 Hours';
+            }
+
+            const row0Cells = (rawMatrix[0] || []).filter(c => String(c).trim() !== '');
+            if (row0Cells.length <= 3 && rawMatrix.length > 1) {
+                headerRowIndex = 1;
+            }
+
+            const headers = (rawMatrix[headerRowIndex] || []).map(h => String(h || '').trim());
+            const dataRows = rawMatrix.slice(headerRowIndex + 1);
+
+            dataRows.forEach(row => {
+                if (!row || row.length === 0) return;
+                const obj = {};
+                headers.forEach((h, colIdx) => {
+                    if (h) obj[h] = row[colIdx];
+                });
+
+                const name = obj.Name || obj['Name of Student'] || obj['Name of Students'] || obj['Name of Students '] || '';
+                if (!name || String(name).trim() === '') return;
+
+                let mobile = String(obj.Mobile || obj['Mobile No'] || obj['Mobile No.'] || obj['Mobile No. '] || '').replace(/\D/g, '');
+                if (mobile.length > 10) mobile = mobile.slice(-10);
+
+                let seat = String(obj.SeatNo || obj['Seat No'] || obj['Seat No.'] || '').trim();
+                if (!seat || seat === 'null' || seat === 'undefined') seat = '';
+
+                let fee = obj.Fee || obj.FESS || obj.Fees || 0;
+                if (typeof fee === 'string') {
+                    const match = fee.match(/\d+/);
+                    fee = match ? Number(match[0]) : 0;
+                }
+                fee = Number(fee) || 0;
+
+                let mode = 'Cash';
+                if (obj.UPI || obj.Upi || obj.upi || obj['UPI '] || obj['Upi ']) {
+                    const upiVal = String(obj.UPI || obj.Upi || obj.upi || '').trim().toUpperCase();
+                    if (upiVal === 'Y' || upiVal === 'YES' || upiVal.length > 0) mode = 'UPI';
+                }
+                if (obj.Mode) mode = obj.Mode;
+
+                let plan = obj.Plan || 'Monthly';
+                if (obj['Monthly '] || obj.Monthly) {
+                    const mVal = String(obj['Monthly '] || obj.Monthly).trim();
+                    if (mVal === '2') plan = '2 Months';
+                    else if (mVal === '3') plan = 'Quarterly';
+                }
+
+                let remarks = String(obj.Remarks || obj.REMARK || obj.Remark || '').trim();
+
+                records.push({
+                    name: String(name).trim(),
+                    mobile: mobile,
+                    aadhar: String(obj.Aadhar || obj['Adhar Number'] || '').trim(),
+                    seatNo: seat,
+                    shift: obj.Shift || defaultShift,
+                    plan: plan,
+                    cardNo: String(obj.CardNo || obj['Card no.'] || '').trim(),
+                    fee: fee,
+                    mode: mode,
+                    lastPaid: formatDate(obj.LastPaid || obj['Last Payment Date']),
+                    joiningDate: formatDate(obj.JoiningDate || obj['Joining Date'] || obj.JOIN),
+                    dueDate: formatDate(obj.DueDate || obj['Due Date']),
+                    remarks: remarks
+                });
+            });
+        });
 
         if (supabase) {
-            const { error } = await supabase.from('students').insert(records);
-            if (error) return res.status(500).json({ success: false, message: error.message });
+            for (const r of records) {
+                if (r.mobile) {
+                    const { data: existing } = await supabase.from('students').select('*').eq('mobile', r.mobile).single();
+                    if (existing) {
+                        const updatePayload = {
+                            lastPaid: r.lastPaid || existing.lastPaid,
+                            dueDate: r.dueDate || existing.dueDate,
+                            fee: r.fee || existing.fee,
+                            mode: r.mode || existing.mode,
+                            remarks: r.remarks ? `${existing.remarks ? existing.remarks + ' | ' : ''}${r.remarks}` : existing.remarks
+                        };
+                        if (r.seatNo) updatePayload.seatNo = r.seatNo;
+                        await supabase.from('students').update(updatePayload).eq('id', existing.id);
+                        continue;
+                    }
+                }
+                await supabase.from('students').insert([r]);
+            }
             return res.json({ success: true, count: records.length });
         }
 
-        let maxId = localStudents.length > 0 ? Math.max(...localStudents.map(s => s.id || 0)) : 0;
+        let maxId = localStudents.length > 0 ? Math.max(...localStudents.map(s => Number(s.id) || 0)) : 0;
         records.forEach(r => {
-            maxId++;
-            r.id = maxId;
-            r.numericId = maxId;
-            localStudents.push(r);
+            if (!r.mobile || r.mobile.length < 10) {
+                const foundPast = localPastMembers.find(m => m.name.toLowerCase() === r.name.toLowerCase());
+                if (!foundPast) {
+                    maxId++;
+                    localPastMembers.push({ ...r, id: maxId, numericId: maxId, deleted_at: new Date().toISOString() });
+                }
+                return;
+            }
+
+            const existingIdx = localStudents.findIndex(s => s.mobile === r.mobile);
+            if (existingIdx !== -1) {
+                const existing = localStudents[existingIdx];
+                existing.lastPaid = r.lastPaid || existing.lastPaid;
+                existing.dueDate = r.dueDate || existing.dueDate;
+                existing.fee = (r.fee !== undefined && r.fee !== null && r.fee > 0) ? r.fee : existing.fee;
+                existing.mode = r.mode || existing.mode;
+                if (r.plan) existing.plan = r.plan;
+                if (r.remarks) existing.remarks = r.remarks;
+                if (r.seatNo && r.seatNo !== 'Pending') existing.seatNo = r.seatNo;
+                if (r.aadhar && !existing.aadhar) existing.aadhar = r.aadhar;
+            } else {
+                maxId++;
+                localStudents.push({
+                    id: maxId,
+                    numericId: maxId,
+                    seatNo: r.seatNo || 'Pending',
+                    name: r.name,
+                    shift: r.shift,
+                    mobile: r.mobile,
+                    aadhar: r.aadhar || '',
+                    joiningDate: r.joiningDate || new Date().toISOString().split('T')[0],
+                    plan: r.plan || 'Monthly',
+                    cardNo: r.cardNo || '',
+                    fee: r.fee || 0,
+                    mode: r.mode || 'Cash',
+                    lastPaid: r.lastPaid || new Date().toISOString().split('T')[0],
+                    dueDate: r.dueDate || '',
+                    remarks: r.remarks || '',
+                    password: '123456'
+                });
+            }
         });
         saveLocalData();
 

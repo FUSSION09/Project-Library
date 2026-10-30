@@ -15,8 +15,8 @@ app.use((req, res, next) => {
 // Serve static frontend assets from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Fallback route for HTML pages
-app.get('/', (req, res) => {
+// Fallback routes for React SPA
+app.get(['/', '/admin', '/student', '/login', '/register'], (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

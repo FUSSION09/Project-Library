@@ -1,0 +1,18 @@
+{
+  "name": "Friends Library - Premier Study Space",
+  "short_name": "Friends Library",
+  "description": "Friends Library Management System & Student Portal",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/p1.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
